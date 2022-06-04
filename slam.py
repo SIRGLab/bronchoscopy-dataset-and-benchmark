@@ -29,7 +29,7 @@ import g2o
 
 from parameters import Parameters  
 
-from frame import Frame, match_frames
+from frame import Frame, match_frames, match_frames_with_loftr
 from keyframe import KeyFrame
 from map_point import MapPoint
 from map import Map
@@ -130,7 +130,7 @@ class Slam(object):
         
     # @ main track method @
     def track(self, img, frame_id, timestamp=None):
-        return self.tracking.track(img,frame_id,timestamp)
+        return self.tracking.track(img, frame_id, timestamp)
 
 
 class Tracking(object):
@@ -213,6 +213,11 @@ class Tracking(object):
     # since we do not have an interframe translation scale, this fitting can be used to detect outliers, estimate interframe orientation and translation direction 
     # N.B. read the NBs of the method estimate_pose_ess_mat(), where the limitations of this method are explained  
     def estimate_pose_by_fitting_ess_mat(self, f_ref, f_cur, idxs_ref, idxs_cur): 
+        '''
+        estimate essential matrix with normalized keypoint localtions
+        f_ref.kpsn --> normalized keypoint
+        idxs_ref --> idx of the selected keypoint, paired with idxs_cur
+        '''
         # N.B.: in order to understand the limitations of fitting an essential mat, read the comments of the method self.estimate_pose_ess_mat() 
         self.timer_pose_est.start()
         # estimate inter frame camera motion by using found keypoint matches 
@@ -338,9 +343,17 @@ class Tracking(object):
         # find keypoint matches between f_cur and kf_ref   
         print('matching keypoints with ', Frame.feature_matcher.type.name)              
         self.timer_match.start()
-        idxs_cur, idxs_ref = match_frames(f_cur, f_ref) 
+
+        # ============= modified by DJ ====================
+        # get match idxs of f_cur and f_ref
+        if 'loftr' in Frame.feature_matcher.type.name.lower():
+            idxs_cur, idxs_ref = match_frames_with_loftr(f_cur, f_ref)
+        else:
+            idxs_cur, idxs_ref = match_frames(f_cur, f_ref) 
+        # ============= modified by DJ ====================
+
         self.timer_match.refresh()          
-        self.num_matched_kps = idxs_cur.shape[0]    
+        self.num_matched_kps = idxs_cur.shape[0]    # assume idxs in shape [N, 2]?
         print("# keypoints matched: %d " % self.num_matched_kps)  
         if kUseEssentialMatrixFitting: 
             # estimate camera orientation and inlier matches by fitting and essential matrix (see the limitations above)             
@@ -598,10 +611,14 @@ class Tracking(object):
                 print('setting f_cur.pose <-- f_ref.pose')
                 # use reference frame pose as initial guess 
                 f_cur.update_pose(f_ref.pose)
-                                                    
+
+            # =======================================================================================
             # track camera motion from f_ref to f_cur
             self.track_previous_frame(f_ref, f_cur)
-            
+            # front-end matches in main track method
+            # change this to adapt LoFTR
+            # =======================================================================================
+
             if not self.pose_is_ok:
                 # if previous track didn't go well then track the camera motion from kf_ref to f_cur 
                 self.track_keyframe(self.kf_ref, f_cur) 

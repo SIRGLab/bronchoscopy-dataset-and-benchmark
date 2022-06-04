@@ -27,6 +27,7 @@ class GroundTruthType(Enum):
     KITTI = 2
     TUM = 3
     SIMPLE = 4
+    COLON = 5
 
 
 kScaleSimple = 1 
@@ -50,6 +51,9 @@ def groundtruth_factory(settings):
         if 'associations' in settings:
             associations = settings['associations']        
         return TumGroundTruth(path, name, associations, GroundTruthType.TUM)
+    if type == 'colon':
+        return SynColonGroundTruth(path, name, associations, GroundTruthType.COLON)
+        pass
     if type == 'video' or type == 'folder':   
         name = settings['groundtruth_file']
         return SimpleGroundTruth(path, name, associations, GroundTruthType.SIMPLE)     
@@ -210,3 +214,9 @@ class TumGroundTruth(GroundTruth):
         matches.sort()
         return matches    
 
+class SynColonGroundTruth(GroundTruth):
+    def __init__(self, path, name, associations=None, type=GroundTruthType.COLON):
+        super().__init__(path, name, associations, type)
+        pass
+
+    

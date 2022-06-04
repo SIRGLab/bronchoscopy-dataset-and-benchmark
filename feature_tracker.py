@@ -17,6 +17,7 @@
 * along with PYSLAM. If not, see <http://www.gnu.org/licenses/>.
 """
 
+from matplotlib import image
 import numpy as np 
 import cv2
 from enum import Enum
@@ -215,7 +216,10 @@ class DescriptorFeatureTracker(FeatureTracker):
     def detectAndCompute(self, frame, mask=None):
         return self.feature_manager.detectAndCompute(frame, mask) 
 
+    def track_LoFTR(self, image_ref, image_cur):
+        pts_ref, pts_cur, conf = self.feature_manager._feature_descriptor.match_img(image_ref, image_cur)
 
+    
     # out: FeatureTrackingResult()
     def track(self, image_ref, image_cur, kps_ref, des_ref):
         kps_cur, des_cur = self.detectAndCompute(image_cur)

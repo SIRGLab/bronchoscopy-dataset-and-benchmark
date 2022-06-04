@@ -526,3 +526,9 @@ def match_frames(f1, f2, ratio_test=None):
     idx1 = np.asarray(idx1)
     idx2 = np.asarray(idx2)   
     return idx1, idx2         
+
+def match_frames_with_loftr(f_cur, f_prev, ration_test=None):
+    # get matched keypoints from loftr
+    
+    # return pseudo idxs
+    pass

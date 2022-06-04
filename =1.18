@@ -1,0 +1,2 @@
+Requirement already satisfied: scipy in /home/dj/anaconda3/envs/pyslam/lib/python3.6/site-packages (1.4.1)
+Requirement already satisfied: numpy>=1.13.3 in /home/dj/anaconda3/envs/pyslam/lib/python3.6/site-packages (from scipy) (1.18.1)

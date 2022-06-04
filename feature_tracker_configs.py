@@ -186,6 +186,17 @@ class FeatureTrackerConfigs(object):
                       match_ratio_test = kRatioTest,                               
                       tracker_type = kTrackerType)
 
+    # ==================== LoFTR ====================
+    # LoFTR actually don't need this but just here to ensure the compatibility
+    LOFTR = dict(num_features=kNumFeatures,                            # N.B.: here, keypoints are not oriented! (i.e. keypoint.angle=0 always)
+                      num_levels = 1, 
+                      scale_factor = 1.2,
+                      detector_type = FeatureDetectorTypes.LOFTR, 
+                      descriptor_type = FeatureDescriptorTypes.LOFTR, 
+                      match_ratio_test = kRatioTest,                               
+                      tracker_type = kTrackerType)
+    # ===============================================
+
     CONTEXTDESC = dict(num_features=kNumFeatures,                   
                        num_levels = 1,                                  
                        scale_factor = 1.2,                              

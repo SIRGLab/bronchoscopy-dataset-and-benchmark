@@ -22,8 +22,10 @@ import cv2
 from enum import Enum
 
 from feature_tracker import FeatureTrackerTypes, FeatureTrackingResult
+from feature_types import FeatureDetectorTypes
 from utils_geom import poseRt
 from timer import TimerFps
+from scipy.spatial.transform import Rotation as R
 
 class VoStage(Enum):
     NO_IMAGES_YET   = 0     # no image received 
@@ -143,6 +145,10 @@ class VisualOdometry(object):
         return R,t  # Rrc, trc (with respect to 'ref' frame) 		
 
     def processFirstFrame(self):
+        # skip when using LoFTR
+        if self.feature_tracker.feature_manager.detector_type == FeatureDetectorTypes.LOFTR:
+            self.draw_img = self.cur_image
+            return
         # only detect on the current image 
         self.kps_ref, self.des_ref = self.feature_tracker.detectAndCompute(self.cur_image)
         # convert from list of keypoints to an array of points 
@@ -152,7 +158,10 @@ class VisualOdometry(object):
     def processFrame(self, frame_id):
         # track features 
         self.timer_feat.start()
-        self.track_result = self.feature_tracker.track(self.prev_image, self.cur_image, self.kps_ref, self.des_ref)
+        if self.feature_tracker.feature_manager.detector_type == FeatureDetectorTypes.LOFTR:
+            self.track_result = self.feature_tracker.track_LoFTR(self.prev_image, self.cur_image)
+        else:
+            self.track_result = self.feature_tracker.track(self.prev_image, self.cur_image, self.kps_ref, self.des_ref)
         self.timer_feat.refresh()
         # estimate pose 
         self.timer_pose_est.start()
@@ -242,3 +251,19 @@ class VisualOdometry(object):
             pg = [self.trueX-self.t0_gt[0], self.trueY-self.t0_gt[1], self.trueZ-self.t0_gt[2]]  # the groudtruth traj starts at 0  
             self.traj3d_gt.append(pg)     
             self.poses.append(poseRt(self.cur_R, p))   
+
+    def save_pose_TUM(self, fname):
+        tum_pose = [self.matrix2line(pos) for pos in self.poses]
+        np.savetxt(fname, np.array(tum_pose), delimiter=' ')
+        
+
+    @staticmethod
+    def matrix2line(pos_matrix):
+        rot = R.from_matrix(pos_matrix[:3,:3])
+        t = pos_matrix[:, 3].T
+        quat = rot.as_quat() # [xyzw] ?
+        t = t.reshape([-1, 1])
+        quat = quat.reshape([-1, 1])
+        final_line = np.concatenate((t, quat), axis=0)
+        return final_line
+    

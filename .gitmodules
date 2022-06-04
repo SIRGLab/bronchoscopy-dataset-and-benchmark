@@ -31,3 +31,7 @@
 [submodule "thirdparty/disk"]
 	path = thirdparty/disk
 	url = https://github.com/cvlab-epfl/disk.git
+[submodule "thirdparty/LoFTR-MedicalData"]
+	path = thirdparty/LoFTR-MedicalData
+	url = https://github.com/Tianbo-Pan/LoFTR-MedicalData.git
+

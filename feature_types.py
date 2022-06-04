@@ -59,6 +59,7 @@ class FeatureDetectorTypes(Enum):
     R2D2        = 22  # [end-to-end] joint detector-descriptor - "R2D2: Repeatable and Reliable Detector and Descriptor"   
     KEYNET      = 23  # "Key.Net: Keypoint Detection by Handcrafted and Learned CNN Filters"
     DISK        = 24  # [end-to-end] joint detector-descriptor - "DISK: Learning local features with policy gradient"
+    LOFTR       = 25  # "LoFTR: Detector-Free Local Feature Matching with Transformers"
 
 class FeatureDescriptorTypes(Enum):
     NONE        = 0   # used for LK tracker (in main_vo.py)
@@ -91,6 +92,7 @@ class FeatureDescriptorTypes(Enum):
     KEYNET      = 27  # keynet descriptor is HARDNET (only with KEYNET detector) - "Key.Net: Keypoint Detection by Handcrafted and Learned CNN Filters"   
     BEBLID      = 28  # [binary] only descriptor - " BEBLID: Boosted Efficient Binary Local Image Descriptor"              
     DISK        = 29  # [end-to-end] joint detector-descriptor - "DISK: Learning local features with policy gradient"    
+    LOFTR       = 30  # "LoFTR: Detector-Free Local Feature Matching with Transformers"
     
 class FeatureInfo(object): 
     norm_type = dict() 
@@ -128,6 +130,9 @@ class FeatureInfo(object):
     #
     norm_type[FeatureDescriptorTypes.FREAK] = cv2.NORM_HAMMING     
     max_descriptor_distance[FeatureDescriptorTypes.FREAK] = 180         # FREAK                                                           
+    #
+    norm_type[FeatureDescriptorTypes.LOFTR] = cv2.NORM_L2  
+    max_descriptor_distance[FeatureDescriptorTypes.LOFTR] = 1.30        # LoFTR settings, never used
     #
     norm_type[FeatureDescriptorTypes.SUPERPOINT] = cv2.NORM_L2  
     max_descriptor_distance[FeatureDescriptorTypes.SUPERPOINT] = 1.30   # SUPERPOINT       

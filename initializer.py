@@ -22,7 +22,7 @@ import time
 import cv2
 from enum import Enum
 
-from frame import Frame, match_frames
+from frame import Frame, match_frames, match_frames_with_loftr
 from keyframe import KeyFrame
 
 from collections import deque
@@ -129,7 +129,12 @@ class Initializer(object):
             return out, is_ok
 
         # find keypoint matches
-        idxs_cur, idxs_ref = match_frames(f_cur, f_ref, kFeatureMatchRatioTestInitializer)       
+        # =========================== modified by DJ ===============================
+        if 'loftr' in Frame.feature_matcher.type.name.lower():
+            idxs_cur, idxs_ref = match_frames_with_loftr(f_cur, f_ref)
+        else:
+            idxs_cur, idxs_ref = match_frames(f_cur, f_ref, kFeatureMatchRatioTestInitializer) 
+        # =========================== modified by DJ ===============================
     
         print('|------------')        
         #print('deque ids: ', [f.id for f in self.frames])

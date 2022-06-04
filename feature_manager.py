@@ -23,6 +23,7 @@ import numpy as np
 import cv2
 
 from collections import Counter
+from feature_loftr import LoFTRMatcher2D
 
 from parameters import Parameters  
 
@@ -39,6 +40,7 @@ from feature_root_sift import RootSIFTFeature2D
 from feature_shitomasi import ShiTomasiDetector
     
 # import and check 
+LoFTRMatcher2D = import_from('feature_loftr', 'LoFTRMatcher2D')         
 SuperPointFeature2D = import_from('feature_superpoint', 'SuperPointFeature2D')         
 TfeatFeature2D = import_from('feature_tfeat', 'TfeatFeature2D')     
 Orbslam2Feature2D = import_from('feature_orbslam2', 'Orbslam2Feature2D')  
@@ -104,7 +106,8 @@ class FeatureManager(object):
                        num_levels = kNumLevelsDefault,                         # number of pyramid levels or octaves for detector and descriptor
                        scale_factor = kScaleFactorDefault,                     # detection scale factor (if it can be set, otherwise it is automatically computed)
                        detector_type = FeatureDetectorTypes.FAST,  
-                       descriptor_type = FeatureDescriptorTypes.ORB):
+                       descriptor_type = FeatureDescriptorTypes.ORB,
+                       extra_cfgs = None): # the extra_cfgs for 
         self.detector_type = detector_type 
         self._feature_detector   = None 
                 
@@ -231,6 +234,8 @@ class FeatureManager(object):
         self.LUCID_create = LUCID_create    
         self.VGG_create = VGG_create     
         self.BEBLID_create = BEBLID_create
+        # ============== modified by DJ ==============
+        # direct matcher
 
         # --------------------------------------------- #
         # check if we want descriptor == detector   
@@ -320,7 +325,11 @@ class FeatureManager(object):
                 self.pyramid_do_parallel = False                 # N.B.: SUPERPOINT interface class is not thread-safe!
                 self.force_multiscale_detect_and_compute = True  # force it since SUPERPOINT cannot compute descriptors separately from keypoints 
             #  
-            #                                                                                     
+            #                
+        elif self.detector_type == FeatureDetectorTypes.LOFTR:
+            self.oriented_features = False
+            self._feature_detector = LoFTRMatcher2D(cfg=None)
+            pass                                                                     
         elif self.detector_type == FeatureDetectorTypes.FAST:    
             self.oriented_features = False             
             self._feature_detector = self.FAST_create(threshold=20, nonmaxSuppression=True)   
@@ -552,6 +561,12 @@ class FeatureManager(object):
                 self._feature_descriptor = self._feature_detector  # reuse the same SuperPointDector object                                     
                 #
                 #
+            elif self.descriptor_type == FeatureDescriptorTypes.LOFTR:
+                if self.detector_type != FeatureDetectorTypes.LOFTR: 
+                    raise ValueError("You cannot use LOFTR descriptor without LOFTR detector!\nPlease, select LOFTR as both descriptor and detector!")
+                self._feature_descriptor = self._feature_detector
+                # 
+                # 
             elif self.descriptor_type == FeatureDescriptorTypes.TFEAT:              
                 self._feature_descriptor = TfeatFeature2D()         
                 #
@@ -888,6 +903,8 @@ class FeatureManager(object):
             # standard detection      
             kps = self._feature_detector.detect(frame, mask)  
         # filter keypoints    
+        if self.detector_type == FeatureDetectorTypes.LOFTR:
+            filter = False
         filter_name = 'NONE'   
         if filter:   
             kps, _, filter_name  = self.filter_keypoints(self.keypoint_filter_type, frame, kps) 
