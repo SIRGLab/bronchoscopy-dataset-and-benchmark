@@ -21,7 +21,8 @@ import os
 import numpy as np
 import cv2
 import math
-
+from scipy.spatial.transform import Rotation as R
+from pathlib import Path as P
 sign = lambda x: math.copysign(1, x)
 
 # returns the difference between ang1 [deg] and ang2 [deg] in the manifold S1 (unit circle)
@@ -289,7 +290,46 @@ def homography_matrix(img,roll,pitch,yaw,tx=0,ty=0,tz=0):
     H = K @ (Rcw - t_n) @ Kinv   
     return H  
 
-    
+def mat2TUM(mat):
+    rot_m = mat[:3,:3]
+    t = mat[:3,3].T
+    r = R.from_matrix(rot_m)
+    quat = r.as_quat().reshape([1, -1])
+    t = t.reshape([1, -1])
+    pos = np.concatenate((t, quat), axis=1)
+    return pos
 
+def poses2TUM(poses):
+    '''
+    input: list of 4x4 pose matrix
+    '''
+    tum_pos = []
+    for p in poses:
+        tum_pos.append(mat2TUM(p))
+    ts = np.arange(len(tum_pos)).reshape([-1, 1])
+    tum_pos = np.array(tum_pos).reshape([-1, 7])
+    final_pos = np.concatenate((ts, tum_pos), axis=1)
+    return final_pos
+
+def savePoseseFile(config, poses, detector_name=None):
+    tum_pos = poses2TUM(poses)
+    base_path = P(config['base_path'])
+    name = config['name']
+    if detector_name is not None:
+        fname = base_path / (detector_name + '_' +'traj_est_S' + name + '.txt')
+    else:
+        fname = base_path / ('traj_est_S' + name + '.txt')
+    print('===> saving estimated poses file in TUM format in %s' % fname)
+    np.savetxt(fname, tum_pos, delimiter=' ')
+
+def saveGTPoseFile(config, gt):
+    gt_data = gt.data
+    base_path = P(config['base_path'])
+    name = config['name']
+    
+    fname = base_path / ('traj_gt_S' + name + '.txt')
+    print('===> saving gt poses file in TUM format in %s' % fname)
+    np.savetxt(fname, gt_data, delimiter=' ')
+    
 
 

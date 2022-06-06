@@ -27,7 +27,7 @@ from visual_odometry import VisualOdometry
 from camera  import PinholeCamera
 from ground_truth import groundtruth_factory
 from dataset import dataset_factory
-
+from utils_geom import savePoseseFile, saveGTPoseFile
 #from mplot3d import Mplot3d
 #from mplot2d import Mplot2d
 from mplot_thread import Mplot2d, Mplot3d
@@ -38,7 +38,8 @@ from feature_types import FeatureDetectorTypes, FeatureDescriptorTypes, FeatureI
 from feature_matcher import feature_matcher_factory, FeatureMatcherTypes
 
 from feature_tracker_configs import FeatureTrackerConfigs
-
+from pathlib import Path as P
+from feature_types import detector_idxing
 
 
 """
@@ -75,12 +76,17 @@ if __name__ == "__main__":
     # tracker_config['num_features'] = num_features
     
     # using superpoint as detector and descriptor
-    tracker_config = FeatureTrackerConfigs.SUPERPOINT
-    tracker_config['num_features'] = num_features
+    # tracker_config = FeatureTrackerConfigs.SUPERPOINT
+    # tracker_config['num_features'] = num_features
+
+
+    # # # using ORB2 as detector and descriptor
+    # tracker_config = FeatureTrackerConfigs.ORB2
+    # tracker_config['num_features'] = num_features
 
     # # using LoFTR as matcher
-    # tracker_config = FeatureTrackerConfigs.LOFTR
-    # tracker_config['num_features'] = num_features
+    tracker_config = FeatureTrackerConfigs.LOFTR
+    tracker_config['num_features'] = num_features
 
     feature_tracker = feature_tracker_factory(**tracker_config)
 
@@ -92,6 +98,26 @@ if __name__ == "__main__":
     traj_img = np.zeros((traj_img_size, traj_img_size, 3), dtype=np.uint8)
     half_traj_img_size = int(0.5*traj_img_size)
     draw_scale = 1
+
+
+    data_type = config.dataset_settings['type']
+    detector_name = str(feature_tracker.detector_type).split('.')[-1]
+    is_record_video = True
+    if is_record_video:
+        out = None
+        base_path = P(config.dataset_settings['base_path'])
+        name = config.dataset_settings['name']
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        
+        vid_name = data_type + '_' + detector_name + '_' + name + '.mp4'
+        save_vid_name = str(base_path / vid_name)
+        img_size = (cam.width, cam.height)
+        fps = cam.fps
+        out = cv2.VideoWriter(save_vid_name, fourcc, fps, img_size)
+
+
+    if data_type == 'colon':
+        vo.init_pose()
 
     is_draw_3d = True
     if kUsePangolin:
@@ -157,8 +183,10 @@ if __name__ == "__main__":
 
 
             # draw camera image 
-            cv2.imshow('Camera', vo.draw_img)				
-
+            cv2.imshow('Camera', vo.draw_img)	
+            # save tracked image as video 
+            if is_record_video:
+                out.write(vo.draw_img)
         # press 'q' to exit!
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
@@ -166,7 +194,12 @@ if __name__ == "__main__":
 
     #print('press a key in order to exit...')
     #cv2.waitKey(0)
-
+    # poses_fname = ''
+    if out is not None:
+        out.release()
+    savePoseseFile(config.dataset_settings, vo.abs_poses, detector_name=detector_name)
+    # save gt pose in the same folder
+    saveGTPoseFile(config.dataset_settings, groundtruth)
     if is_draw_traj_img:
         print('saving map.png')
         cv2.imwrite('map.png', traj_img)

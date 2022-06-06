@@ -77,6 +77,7 @@ class VisualOdometry(object):
         self.t0_gt = None            # history of ground truth translations (if available)
         self.traj3d_est = []         # history of estimated translations centered w.r.t. first one
         self.traj3d_gt = []          # history of estimated ground truth translations centered w.r.t. first one     
+        self.abs_poses = []          # history of estimated ground truth translations centered w.r.t. world
 
         self.num_matched_kps = None    # current number of matched keypoints  
         self.num_inliers = None        # current number of inliers 
@@ -85,7 +86,17 @@ class VisualOdometry(object):
         self.timer_main = TimerFps('VO', is_verbose = self.timer_verbose)
         self.timer_pose_est = TimerFps('PoseEst', is_verbose = self.timer_verbose)
         self.timer_feat = TimerFps('Feature', is_verbose = self.timer_verbose)
+        
 
+    def init_pose(self):
+        # tum data only
+        starting_pos = self.groundtruth.data[0] # [ts, x, y, z, qx, qy, qz, qw]
+        rot = R.from_quat(starting_pos[4:])
+        rot_m = rot.as_matrix()
+        t = starting_pos[1:4].reshape([3, 1])
+        self.cur_R = rot_m
+        self.cur_t = t
+        
     # get current translation scale from ground-truth if groundtruth is not None 
     def getAbsoluteScale(self, frame_id):  
         if self.groundtruth is not None and kUseGroundTruthScale:
@@ -148,12 +159,12 @@ class VisualOdometry(object):
         # skip when using LoFTR
         if self.feature_tracker.feature_manager.detector_type == FeatureDetectorTypes.LOFTR:
             self.draw_img = self.cur_image
-            return
+        else:
         # only detect on the current image 
-        self.kps_ref, self.des_ref = self.feature_tracker.detectAndCompute(self.cur_image)
-        # convert from list of keypoints to an array of points 
-        self.kps_ref = np.array([x.pt for x in self.kps_ref], dtype=np.float32) 
-        self.draw_img = self.drawFeatureTracks(self.cur_image)
+            self.kps_ref, self.des_ref = self.feature_tracker.detectAndCompute(self.cur_image)
+            # convert from list of keypoints to an array of points 
+            self.kps_ref = np.array([x.pt for x in self.kps_ref], dtype=np.float32) 
+            self.draw_img = self.drawFeatureTracks(self.cur_image)
 
     def processFrame(self, frame_id):
         # track features 
@@ -251,7 +262,7 @@ class VisualOdometry(object):
             pg = [self.trueX-self.t0_gt[0], self.trueY-self.t0_gt[1], self.trueZ-self.t0_gt[2]]  # the groudtruth traj starts at 0  
             self.traj3d_gt.append(pg)     
             self.poses.append(poseRt(self.cur_R, p))   
-
+        self.abs_poses.append(poseRt(self.cur_R, self.cur_t.reshape(3)))
     def save_pose_TUM(self, fname):
         tum_pose = [self.matrix2line(pos) for pos in self.poses]
         np.savetxt(fname, np.array(tum_pose), delimiter=' ')

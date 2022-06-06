@@ -61,6 +61,36 @@ class FeatureDetectorTypes(Enum):
     DISK        = 24  # [end-to-end] joint detector-descriptor - "DISK: Learning local features with policy gradient"
     LOFTR       = 25  # "LoFTR: Detector-Free Local Feature Matching with Transformers"
 
+detector_idxing = {
+    0  : 'NONE',
+    1  : 'SHI_TOMASI',
+    2  : 'FAST',
+    3  : 'SIFT',
+    4  : 'ROOT_SIFT',
+    5  : 'SURF',
+    6  : 'ORB',
+    7  : 'ORB2',
+    8  : 'BRISK',
+    9  : 'KAZE',
+    10 : 'AKAZE',
+    11 : 'SUPERPOINT',
+    12 : 'AGAST',
+    13 : 'GFTT',
+    14 : 'MSER',
+    15 : 'MSD',
+    16 : 'STAR',
+    17 : 'HL',
+    18 : 'D2NET',
+    19 : 'DELF',
+    20 : 'CONTEXTDES',
+    21 : 'LFNET',
+    22 : 'R2D2',
+    23 : 'KEYNET',
+    24 : 'DISK',
+    25 : 'LOFTR'
+}
+
+
 class FeatureDescriptorTypes(Enum):
     NONE        = 0   # used for LK tracker (in main_vo.py)
     SIFT        = 1   # "Object Recognition from Local Scale-Invariant Features"

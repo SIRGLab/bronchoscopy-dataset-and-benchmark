@@ -18,5 +18,5 @@ videos/webcam
 kf_info.log 
 local_mapping.log 
 tum_association_matches.txt 
-
+download_colon.py
 thirdparty/protoc 

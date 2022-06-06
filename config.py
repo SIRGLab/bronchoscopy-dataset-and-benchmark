@@ -89,7 +89,7 @@ class Config(object):
         self.dataset_type = self.config_parser['DATASET']['type']
         self.dataset_settings = self.config_parser[self.dataset_type]
 
-        self.dataset_path = self.dataset_settings['base_path'];
+        self.dataset_path = self.dataset_settings['base_path']
         self.dataset_settings['base_path'] = os.path.join( __location__, self.dataset_path)
         #print('dataset_settings: ', self.dataset_settings)
 

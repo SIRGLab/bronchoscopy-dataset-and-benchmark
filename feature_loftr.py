@@ -1,18 +1,24 @@
-from turtle import forward
-
 import torch
-from template_FE import templateDLFE
 import config
 config.cfg.set_lib('loftr') 
 from LoFTR_wrapper import default_cfg, LoFTR
-from demo.utils import frame2tensor
+# from demo.utils import frame2tensor
 import os 
 import cv2
-from utils_sys import Printer, is_opencv_version_greater_equal
+from utils_sys import is_opencv_version_greater_equal
 from copy import deepcopy
+from threading import RLock
+import numpy as np
+
+def frame2tensor(frame, device):
+    return torch.from_numpy(frame/255.).float()[None, None].to(device)
+
+
 
 class LoFTRMatcher2D():
     def __init__(self, cfg) -> None:
+        # pass
+        self.lock = RLock()
         self.weights_path=config.cfg.root_folder + '/thirdparty/LoFTR-MedicalData/weights/outdoor_ds.ckpt'
         if cfg is None:
             net_cfg = default_cfg
@@ -59,35 +65,32 @@ class LoFTRMatcher2D():
             image_cur: reference image in np.array
             mask: image mask 
         '''
+        with self.lock:
+            tensor_ref = frame2tensor(self.crop_img(image_ref), self.device)
+            tensor_cur = frame2tensor(self.crop_img(image_cur), self.device)
+            data_dict = {
+                'image0': tensor_ref,
+                'image1': tensor_cur
+            }
+            self.net(data_dict)
+            vis_range = [0, 2000] # default setting in LoFTR demo
+            mkpts0 = data_dict['mkpts0_f'].cpu().numpy()[vis_range[0]:vis_range[1]]
+            mkpts1 = data_dict['mkpts1_f'].cpu().numpy()[vis_range[0]:vis_range[1]]
+            mconf = data_dict['mconf'].cpu().numpy()[vis_range[0]:vis_range[1]].reshape([-1, 1])
+            # Normalize confidence.
+            if len(mconf) > 0:
+                conf_vis_min = 0.
+                conf_max = mconf.max()
+                mconf = (mconf - conf_vis_min) / (conf_max - conf_vis_min + 1e-5)
+            
+            pts_prev = np.concatenate((mkpts0, mconf), axis=1)
+            pts_cur = np.concatenate((mkpts1, mconf), axis=1)
 
-        tensor_ref = frame2tensor(self.crop_img(image_ref), self.device)
-        tensor_cur = frame2tensor(self.crop_img(image_cur), self.device)
-        data_dict = {
-            'image0': tensor_ref,
-            'image1': tensor_cur
-        }
-        self.net(data_dict)
-        vis_range = [0, 2000] # default setting in LoFTR demo
-        mkpts0 = data_dict['mkpts0_f'].cpu().numpy()[vis_range[0]:vis_range[1]]
-        mkpts1 = data_dict['mkpts1_f'].cpu().numpy()[vis_range[0]:vis_range[1]]
-        mconf = data_dict['mconf'].cpu().numpy()[vis_range[0]:vis_range[1]]
-        # Normalize confidence.
-        if len(mconf) > 0:
-            conf_vis_min = 0.
-            conf_max = mconf.max()
-            mconf = (mconf - conf_vis_min) / (conf_max - conf_vis_min + 1e-5)
-        
-        return mkpts0, mkpts1, mconf
-
-    def convert_superpts_to_keypoints(pts, size=1): 
-        kps = []
-        if pts is not None: 
-            # convert matrix [Nx2] of pts into list of keypoints  
-            if is_opencv_version_greater_equal(4,5,3):
-                kps = [ cv2.KeyPoint(p[0], p[1], size=size, response=p[2]) for p in pts ]            
-            else: 
-                kps = [ cv2.KeyPoint(p[0], p[1], _size=size, _response=p[2]) for p in pts ]                      
-        return kps  
+            kps_prev = convert_superpts_to_keypoints(pts_prev)
+            kps_cur = convert_superpts_to_keypoints(pts_cur)
+            
+            return kps_prev, kps_cur
+  
         
     def crop_img(self, img):
         '''
@@ -99,3 +102,13 @@ class LoFTRMatcher2D():
         new_img = deepcopy(img)
         new_img = new_img[0:h-h_res, 0:w-w_res]
         return new_img
+
+def convert_superpts_to_keypoints(pts, size=1): 
+    kps = []
+    if pts is not None: 
+        # convert matrix [Nx2] of pts into list of keypoints  
+        if is_opencv_version_greater_equal(4,5,3):
+            kps = [ cv2.KeyPoint(p[0], p[1], size=size, response=p[2]) for p in pts ]            
+        else: 
+            kps = [ cv2.KeyPoint(p[0], p[1], _size=size, _response=p[2]) for p in pts ]                      
+    return kps

@@ -20,7 +20,7 @@
 import sys
 import numpy as np 
 from enum import Enum
-
+from pathlib import Path
 
 class GroundTruthType(Enum):
     NONE = 1
@@ -216,7 +216,21 @@ class TumGroundTruth(GroundTruth):
 
 class SynColonGroundTruth(GroundTruth):
     def __init__(self, path, name, associations=None, type=GroundTruthType.COLON):
-        super().__init__(path, name, associations, type)
-        pass
+        super().__init__(path, name, associations, type) # name = 'colon'
+        gt_file = Path(path) / ('colon_tum_' + name + '.txt')
+        self.data = np.loadtxt(gt_file, delimiter=' ')
+        
 
-    
+    def getPoseAndAbsoluteScale(self, frame_id):
+        x_idx, y_idx, z_idx = 1, 2, 3
+        # ss = self.getDataLine(frame_id-1)
+        ss = self.data[frame_id-1, :]
+        x_prev = self.scale*float(ss[x_idx])
+        y_prev = self.scale*float(ss[y_idx])
+        z_prev = self.scale*float(ss[z_idx])     
+        ss = self.data[frame_id, :]
+        x = self.scale*float(ss[x_idx])
+        y = self.scale*float(ss[y_idx])
+        z = self.scale*float(ss[z_idx])
+        abs_scale = np.sqrt((x - x_prev)*(x - x_prev) + (y - y_prev)*(y - y_prev) + (z - z_prev)*(z - z_prev))
+        return x,y,z,abs_scale 

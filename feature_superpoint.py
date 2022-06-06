@@ -91,7 +91,8 @@ class SuperPointFeature2D:
         self.heatmap = [] 
         self.frame = None 
         self.frameFloat = None 
-        self.keypoint_size = 20  # just a representative size for visualization and in order to convert extracted points to cv2.KeyPoint 
+        # just a representative size for visualization and in order to convert extracted points to cv2.KeyPoint 
+        self.keypoint_size = 20  
           
     # compute both keypoints and descriptors       
     def detectAndCompute(self, frame, mask=None):  # mask is a fake input 

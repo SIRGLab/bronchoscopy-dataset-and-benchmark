@@ -17,6 +17,7 @@
 * along with PYSLAM. If not, see <http://www.gnu.org/licenses/>.
 """
 
+from nis import match
 from matplotlib import image
 import numpy as np 
 import cv2
@@ -217,7 +218,19 @@ class DescriptorFeatureTracker(FeatureTracker):
         return self.feature_manager.detectAndCompute(frame, mask) 
 
     def track_LoFTR(self, image_ref, image_cur):
-        pts_ref, pts_cur, conf = self.feature_manager._feature_descriptor.match_img(image_ref, image_cur)
+        kps_prev, kps_cur = self.feature_manager._feature_descriptor.match_img(image_ref, image_cur)
+        res = FeatureTrackingResult()
+        res.kps_ref = np.array([x.pt for x in kps_prev], dtype=np.float32)   # all the reference keypoints  
+        res.kps_cur = np.array([x.pt for x in kps_cur], dtype=np.float32)   # all the current keypoints
+        match_idx = np.arange(len(kps_cur)).reshape([-1]).astype(int)
+        match_idx = list(match_idx)
+        # res.idxs_cur = match_idx
+        # res.idxs_ref = match_idx
+        res.kps_ref_matched = np.array([x.pt for x in kps_prev], dtype=np.float32) 
+        res.kps_cur_matched = np.array([x.pt for x in kps_cur], dtype=np.float32) 
+        res.idxs_ref = np.asarray(match_idx)
+        res.idxs_cur = np.asarray(match_idx)
+        return res
 
     
     # out: FeatureTrackingResult()
