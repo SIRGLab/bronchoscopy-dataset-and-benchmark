@@ -323,13 +323,12 @@ def savePoseseFile(config, poses, detector_name=None):
     np.savetxt(fname, tum_pos, delimiter=' ')
 
 def saveGTPoseFile(config, gt):
-    gt_data = gt.data
+    gt_data = gt.data[:-1, :] # remove the final pose
     base_path = P(config['base_path'])
     name = config['name']
-    
     fname = base_path / ('traj_gt_S' + name + '.txt')
     print('===> saving gt poses file in TUM format in %s' % fname)
     np.savetxt(fname, gt_data, delimiter=' ')
-    
+
 
 

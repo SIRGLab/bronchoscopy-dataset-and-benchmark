@@ -1,0 +1,19 @@
+Collecting package metadata (current_repodata.json): ...working... done
+Solving environment: ...working... done
+
+## Package Plan ##
+
+  environment location: /home/dj/anaconda3/envs/medical
+
+  added / updated specs:
+    - numpy
+
+
+The following packages will be SUPERSEDED by a higher-priority channel:
+
+  ca-certificates    conda-forge::ca-certificates-2022.5.1~ --> pkgs/main::ca-certificates-2022.4.26-h06a4308_0
+  certifi            conda-forge::certifi-2022.5.18.1-py37~ --> pkgs/main::certifi-2022.5.18.1-py37h06a4308_0
+  openssl            conda-forge::openssl-1.1.1o-h166bdaf_0 --> pkgs/main::openssl-1.1.1o-h7f8727e_0
+
+
+Proceed ([y]/n)? 

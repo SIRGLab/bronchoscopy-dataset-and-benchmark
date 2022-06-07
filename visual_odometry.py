@@ -35,7 +35,7 @@ kVerbose=True
 kMinNumFeature = 2000
 kRansacThresholdNormalized = 0.0003  # metric threshold used for normalized image coordinates 
 kRansacThresholdPixels = 0.1         # pixel threshold used for image coordinates 
-kAbsoluteScaleThreshold = 0.1        # absolute translation scale; it is also the minimum translation norm for an accepted motion 
+kAbsoluteScaleThreshold = 1e-3       # absolute translation scale; it is also the minimum translation norm for an accepted motion 
 kUseEssentialMatrixEstimation = True # using the essential matrix fitting algorithm is more robust RANSAC given five-point algorithm solver 
 kRansacProb = 0.999
 kUseGroundTruthScale = True 
@@ -153,6 +153,8 @@ class VisualOdometry(object):
             E = self.cam.K.T @ F @ self.cam.K    # E = K.T * F * K 
         #self.removeOutliersFromMask(self.mask)  # do not remove outliers, the last unmatched/outlier features can be matched and recognized as inliers in subsequent frames                          
         _, R, t, mask = cv2.recoverPose(E, self.kpn_cur, self.kpn_ref, focal=1, pp=(0., 0.))   
+        print('recovered rotation matrix: \n' , R)
+        print('recovered translation matrix: \n ', t)
         return R,t  # Rrc, trc (with respect to 'ref' frame) 		
 
     def processFirstFrame(self):
