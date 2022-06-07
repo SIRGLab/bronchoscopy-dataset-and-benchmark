@@ -20,3 +20,4 @@ local_mapping.log
 tum_association_matches.txt 
 download_colon.py
 thirdparty/protoc 
+data_prepare/colon
