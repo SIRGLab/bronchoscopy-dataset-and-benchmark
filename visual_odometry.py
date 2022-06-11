@@ -26,6 +26,7 @@ from feature_types import FeatureDetectorTypes
 from utils_geom import poseRt
 from timer import TimerFps
 from scipy.spatial.transform import Rotation as R
+from pathlib import Path as P
 
 class VoStage(Enum):
     NO_IMAGES_YET   = 0     # no image received 
@@ -87,6 +88,14 @@ class VisualOdometry(object):
         self.timer_pose_est = TimerFps('PoseEst', is_verbose = self.timer_verbose)
         self.timer_feat = TimerFps('Feature', is_verbose = self.timer_verbose)
         
+        # path to save matches
+        detector_name = str(feature_tracker.detector_type).split('.')[-1]
+        try:
+            save_path = getattr(groundtruth, 'path')
+            self.save_path = P(save_path) / ('matches_' + detector_name)
+            self.save_path.mkdir(exist_ok=True)
+        except:
+            self.save_path = None
 
     def init_pose(self):
         # tum data only
@@ -156,7 +165,22 @@ class VisualOdometry(object):
         _, R, t, mask = cv2.recoverPose(E, self.kpn_cur, self.kpn_ref, focal=1, pp=(0., 0.))   
         print('recovered rotation matrix: \n' , R)
         print('recovered translation matrix: \n ', t)
+
         return R,t  # Rrc, trc (with respect to 'ref' frame) 		
+
+    def save_matches(self, frame_id):
+        # save matches to file for further consistency check
+        
+        base_fname = 'frame_%04d.txt' % frame_id
+        all_match_fname = self.save_path / ('all_' + base_fname)
+        inlier_fname = self.save_path / ('inliers_' + base_fname)
+        all_match = np.concatenate((self.kpn_cur, self.kpn_ref), axis=1)
+        inlier_idx = np.where(self.mask_match == 1)
+        inlier_match = all_match[inlier_idx]
+        print('======> saving matches to %s...' % self.save_path)
+        np.savetxt(all_match_fname, all_match)
+        np.savetxt(inlier_fname, inlier_match)
+        
 
     def processFirstFrame(self):
         # skip when using LoFTR
@@ -181,6 +205,8 @@ class VisualOdometry(object):
         self.timer_pose_est.start()
         R, t = self.estimatePose(self.track_result.kps_ref_matched, self.track_result.kps_cur_matched)     
         self.timer_pose_est.refresh()
+        # save matches to file
+        self.save_matches(frame_id)
         # update keypoints history  
         self.kps_ref = self.track_result.kps_ref
         self.kps_cur = self.track_result.kps_cur

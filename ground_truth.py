@@ -217,6 +217,7 @@ class TumGroundTruth(GroundTruth):
 class SynColonGroundTruth(GroundTruth):
     def __init__(self, path, name, associations=None, type=GroundTruthType.COLON):
         super().__init__(path, name, associations, type) # name = 'colon'
+        self.path = path
         gt_file = Path(path) / ('colon_tum_' + name + '.txt')
         self.data = np.loadtxt(gt_file, delimiter=' ')
         

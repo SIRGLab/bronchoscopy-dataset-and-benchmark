@@ -77,8 +77,8 @@ if __name__ == "__main__":
     # tracker_config['num_features'] = num_features
     
     # # using superpoint as detector and descriptor
-    # tracker_config = FeatureTrackerConfigs.SUPERPOINT
-    # tracker_config['num_features'] = num_features
+    tracker_config = FeatureTrackerConfigs.SUPERPOINT
+    tracker_config['num_features'] = num_features
 
 
     # # using ORB2 as detector and descriptor
@@ -86,8 +86,8 @@ if __name__ == "__main__":
     # tracker_config['num_features'] = num_features
 
     # # using LoFTR as matcher
-    tracker_config = FeatureTrackerConfigs.LOFTR
-    tracker_config['num_features'] = num_features
+    # tracker_config = FeatureTrackerConfigs.LOFTR
+    # tracker_config['num_features'] = num_features
 
     feature_tracker = feature_tracker_factory(**tracker_config)
 
