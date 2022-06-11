@@ -311,8 +311,10 @@ def poses2TUM(poses):
     final_pos = np.concatenate((ts, tum_pos), axis=1)
     return final_pos
 
-def savePoseseFile(config, poses, detector_name=None):
+def savePoseseFile(config, poses, detector_name=None, position_scale=0.01):
     tum_pos = poses2TUM(poses)
+    translation = tum_pos[:, 1:4] * position_scale # convert to meter
+    tum_pos[:, 1:4] = translation
     base_path = P(config['base_path'])
     name = config['name']
     if detector_name is not None:
@@ -321,14 +323,17 @@ def savePoseseFile(config, poses, detector_name=None):
         fname = base_path / ('traj_est_S' + name + '.txt')
     print('===> saving estimated poses file in TUM format in %s' % fname)
     np.savetxt(fname, tum_pos, delimiter=' ')
+    return fname
 
-def saveGTPoseFile(config, gt):
+def saveGTPoseFile(config, gt, position_scale=0.01):
     gt_data = gt.data[:-1, :] # remove the final pose
+    translation = gt_data[:, 1:4] * position_scale # convert to meter
+    gt_data[:, 1:4] = translation
     base_path = P(config['base_path'])
     name = config['name']
     fname = base_path / ('traj_gt_S' + name + '.txt')
     print('===> saving gt poses file in TUM format in %s' % fname)
     np.savetxt(fname, gt_data, delimiter=' ')
-
+    return fname
 
 

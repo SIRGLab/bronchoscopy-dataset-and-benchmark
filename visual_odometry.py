@@ -147,6 +147,7 @@ class VisualOdometry(object):
         if kUseEssentialMatrixEstimation:
             # the essential matrix algorithm is more robust since it uses the five-point algorithm solver by D. Nister (see the notes and paper above )
             E, self.mask_match = cv2.findEssentialMat(self.kpn_cur, self.kpn_ref, focal=1, pp=(0., 0.), method=cv2.RANSAC, prob=kRansacProb, threshold=kRansacThresholdNormalized)
+            # print(E)
         else:
             # just for the hell of testing fundamental matrix fitting ;-) 
             F, self.mask_match = self.computeFundamentalMatrix(kp_cur_u, kp_ref_u)

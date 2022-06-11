@@ -20,6 +20,7 @@
 import numpy as np
 import cv2
 import math
+import os
 
 from config import Config
 
@@ -40,8 +41,8 @@ from feature_matcher import feature_matcher_factory, FeatureMatcherTypes
 from feature_tracker_configs import FeatureTrackerConfigs
 from pathlib import Path as P
 from feature_types import detector_idxing
-
-
+from eval_utils.metric_evaluation import metric_eval
+from evo.core import metrics
 """
 use or not pangolin (if you want to use it then you need to install it by using the script install_thirdparty.sh)
 """
@@ -75,12 +76,12 @@ if __name__ == "__main__":
     # tracker_config = FeatureTrackerConfigs.LK_SHI_TOMASI
     # tracker_config['num_features'] = num_features
     
-    # using superpoint as detector and descriptor
+    # # using superpoint as detector and descriptor
     # tracker_config = FeatureTrackerConfigs.SUPERPOINT
     # tracker_config['num_features'] = num_features
 
 
-    # # # using ORB2 as detector and descriptor
+    # # using ORB2 as detector and descriptor
     # tracker_config = FeatureTrackerConfigs.ORB2
     # tracker_config['num_features'] = num_features
 
@@ -197,9 +198,11 @@ if __name__ == "__main__":
     # poses_fname = ''
     if out is not None:
         out.release()
-    savePoseseFile(config.dataset_settings, vo.abs_poses, detector_name=detector_name)
+    est_file = savePoseseFile(config.dataset_settings, vo.abs_poses, detector_name=detector_name)
     # save gt pose in the same folder
-    saveGTPoseFile(config.dataset_settings, groundtruth)
+    gt_file = saveGTPoseFile(config.dataset_settings, groundtruth)
+
+    
     if is_draw_traj_img:
         print('saving map.png')
         cv2.imwrite('map.png', traj_img)
@@ -214,3 +217,9 @@ if __name__ == "__main__":
         matched_points_plt.quit()
                 
     cv2.destroyAllWindows()
+
+    # trajectory evaluation with evo
+    # metric_eval(gt_file, est_file, mode='rpe', pose_relation=metrics.PoseRelation.translation_part)
+    # metric_eval(gt_file, est_file, mode='rpe', pose_relation=metrics.PoseRelation.rotation_angle_deg)
+    eval_cmd = 'evo_traj tum %s --ref=%s -p --plot_mode=xz' % (gt_file, est_file)
+    os.system(eval_cmd)

@@ -9,7 +9,7 @@ import cv2
 
 gt_file = '/home/dj/git/pyslam/data_prepare/colon/SyntheticColon_I/Train/processed/traj_gt_S01.txt'
 
-est_spp_file = '/home/dj/Downloads/pyslam-20220606T062132Z-001/pyslam/SUPERPOINT_traj_est_S01.txt'
+est_spp_file = '/home/dj/git/pyslam/data_prepare/colon/SyntheticColon_I/Train/processed/SUPERPOINT_traj_est_S01.txt'
 
 est_loftr_file = '/home/dj/git/pyslam/data_prepare/colon/SyntheticColon_I/Train/processed/LOFTR_traj_est_S01.txt'
 
@@ -44,7 +44,7 @@ def draw_traj_dots(traj, ax, idx, label, color):
 
 
 # define a function which returns an image as numpy array from figure
-def get_img_from_fig(fig, dpi=180):
+def get_img_from_fig(fig, dpi=100):
     buf = io.BytesIO()
     fig.savefig(buf, format="png", dpi=dpi)
     buf.seek(0)
@@ -55,6 +55,7 @@ def get_img_from_fig(fig, dpi=180):
 
     return img
 
+plt_imgs_fnames = []
 plt_imgs = []
 for i in range(len(est_loftr)):
 
@@ -67,14 +68,15 @@ for i in range(len(est_loftr)):
 
     # you can get a high-resolution image as numpy array!!
     plot_img_np = get_img_from_fig(fig)
-    # plt_imgs.append(plot_img_np)
+    plt_imgs.append(plot_img_np)
     img_fname = str(i).zfill(5) + '.png'
     full_img_fname = img_folder / img_fname
     plt.imsave(str(full_img_fname), plot_img_np)
-    plt_imgs.append(str(full_img_fname))
+    plt_imgs_fnames.append(str(full_img_fname))
+
     plt.cla()
 print('total number of images: %d ' % len(plt_imgs))
-# imageio.mimsave(traj_gif_file, plt_imgs, fps=15)
+imageio.mimsave(traj_gif_file, plt_imgs, fps=15)
 
 
 
@@ -95,4 +97,4 @@ def frame2Vid(img_list, save_fname, fps=15):
         out.write(img)
     out.release()
 
-frame2Vid(plt_imgs, traj_vid_file, fps=15)
+frame2Vid(plt_imgs_fnames, traj_vid_file, fps=15)
