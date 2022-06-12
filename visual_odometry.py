@@ -176,10 +176,10 @@ class VisualOdometry(object):
         inlier_fname = self.save_path / ('inliers_' + base_fname)
         all_match = np.concatenate((self.kpn_cur, self.kpn_ref), axis=1)
         inlier_idx = np.where(self.mask_match == 1)
-        inlier_match = all_match[inlier_idx]
+        inlier_match = all_match[inlier_idx[0], :]
         print('======> saving matches to %s...' % self.save_path)
-        np.savetxt(all_match_fname, all_match)
-        np.savetxt(inlier_fname, inlier_match)
+        np.savetxt(all_match_fname, all_match, delimiter=',')
+        np.savetxt(inlier_fname, inlier_match, delimiter=',')
         
 
     def processFirstFrame(self):
