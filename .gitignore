@@ -21,3 +21,5 @@ tum_association_matches.txt
 download_colon.py
 thirdparty/protoc 
 data_prepare/colon
+data_prepare/endors
+data_prepare/lung

@@ -37,6 +37,7 @@ class DatasetType(Enum):
     FOLDER = 5  # generic folder of pics 
     LIVE = 6
     COLON = 7
+    LUNG = 8
 
 
 def dataset_factory(settings):
@@ -66,6 +67,8 @@ def dataset_factory(settings):
         dataset = VideoDataset(path, name, associations, DatasetType.VIDEO)  
     if type == 'colon':
         dataset = MedicalVideoDataset(path, name, associations, DatasetType.COLON)
+    if type == 'lung':
+        dataset = LungDataset(path, name, associations, DatasetType.LUNG)
     if type == 'folder':
         fps = 10 # a default value 
         if 'fps' in settings:
@@ -125,10 +128,19 @@ class Dataset(object):
         return self._next_timestamp    
 
 class MedicalVideoDataset(Dataset): 
-    def __init__(self, path, name, associations=None, type=DatasetType.VIDEO): 
+    def __init__(self, path, name, associations=None, type=DatasetType.VIDEO, load_vid=True): 
         super().__init__(path, name, None, associations, type)    
         self.filename = path + '/' + 'seq_' + name  + '.mp4'
         #print('video: ', self.filename)
+        self.num_frames = None
+        self.width = None
+        self.height = None
+        self.fps = None
+        self.Ts = None
+        if load_vid:
+            self.load_vid()
+
+    def load_vid(self):
         self.cap = cv2.VideoCapture(self.filename)
         if not self.cap.isOpened():
             raise IOError('Cannot open movie file: ', self.filename)
@@ -157,6 +169,15 @@ class MedicalVideoDataset(Dataset):
             print('ERROR while reading from file: ', self.filename)
         return image    
 
+class LungDataset(MedicalVideoDataset):
+    def __init__(self, path, name, associations=None, type=DatasetType.VIDEO):
+        super().__init__(path, name, associations, type, load_vid=False)
+        self.filename = path + '/' + name  + '.mp4'
+        self.load_vid()
+    
+
+
+    
 class VideoDataset(Dataset): 
     def __init__(self, path, name, associations=None, type=DatasetType.VIDEO): 
         super().__init__(path, name, None, associations, type)    

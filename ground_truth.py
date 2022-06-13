@@ -22,12 +22,15 @@ import numpy as np
 from enum import Enum
 from pathlib import Path
 
+from yaml import load
+
 class GroundTruthType(Enum):
     NONE = 1
     KITTI = 2
     TUM = 3
     SIMPLE = 4
     COLON = 5
+    LUNG = 6
 
 
 kScaleSimple = 1 
@@ -53,7 +56,8 @@ def groundtruth_factory(settings):
         return TumGroundTruth(path, name, associations, GroundTruthType.TUM)
     if type == 'colon':
         return SynColonGroundTruth(path, name, associations, GroundTruthType.COLON)
-        pass
+    if type == 'lung':
+        return LungEMT(path, name, associations, GroundTruthType.LUNG)
     if type == 'video' or type == 'folder':   
         name = settings['groundtruth_file']
         return SimpleGroundTruth(path, name, associations, GroundTruthType.SIMPLE)     
@@ -215,11 +219,12 @@ class TumGroundTruth(GroundTruth):
         return matches    
 
 class SynColonGroundTruth(GroundTruth):
-    def __init__(self, path, name, associations=None, type=GroundTruthType.COLON):
+    def __init__(self, path, name, associations=None, type=GroundTruthType.COLON, load_txt=True):
         super().__init__(path, name, associations, type) # name = 'colon'
         self.path = path
         gt_file = Path(path) / ('colon_tum_' + name + '.txt')
-        self.data = np.loadtxt(gt_file, delimiter=' ')
+        if load_txt:
+            self.data = np.loadtxt(gt_file, delimiter=' ')
         
 
     def getPoseAndAbsoluteScale(self, frame_id):
@@ -235,3 +240,11 @@ class SynColonGroundTruth(GroundTruth):
         z = self.scale*float(ss[z_idx])
         abs_scale = np.sqrt((x - x_prev)*(x - x_prev) + (y - y_prev)*(y - y_prev) + (z - z_prev)*(z - z_prev))
         return x,y,z,abs_scale 
+
+class LungEMT(SynColonGroundTruth):
+    def __init__(self, path, name, associations=None, type=GroundTruthType.COLON):
+        super().__init__(path, name, associations, type, load_txt=False)
+        self.path = path
+        gt_file = Path(path) / (name + '.txt')
+        gt_file = str(gt_file)
+        self.data = np.loadtxt(gt_file, delimiter=' ')

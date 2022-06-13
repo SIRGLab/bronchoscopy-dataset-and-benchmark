@@ -3,7 +3,7 @@ from math import degrees
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
-from filterpy.kalman import FixedLagSmoother
+# from filterpy.kalman import FixedLagSmoother
 from scipy.spatial.transform import Rotation as R
 import os
 
@@ -15,6 +15,11 @@ def moving_average(x, w):
     end_pad = [x[-1]] * pad_num
     x_padded = front_pad + x_list + end_pad
     return np.convolve(x_padded, np.ones(w), 'valid') / w
+
+def correct_rotation(emt_seq):
+    quat = emt_seq[4:]
+
+    pass
 
 def load_emt_translation(fname, is_smooth=True, w=5):
     
@@ -44,7 +49,13 @@ def rot2quat(rot):
     result = np.zeros([rot.shape[0], 4])
     for i in range(rot.shape[0]):
         rotvet = rot[i,:]
-        r = R.from_rotvec(rotvec=rotvet, degrees=True)
+        try:
+            # available with scipy >= 1.7.0
+            r = R.from_rotvec(rotvec=rotvet, degrees=True)
+        except:
+            # convert degrees to radius
+            rotvet = rotvet / 180 * np.pi
+            r = R.from_rotvec(rotvet)
         quat = r.as_quat()
         result[i] = quat
     return result
@@ -71,7 +82,7 @@ def get_emt_eval(fname, nframe, is_smooth=False, w=5):
     quat_vec = rot2quat(rot_vec)
 
     ts_OK = ts_OK - ts_OK[0]
-    ts_OK = ts_OK / len(ts_OK) * nframe
+    ts_OK = ts_OK / max(ts_OK) * nframe
     img_ts = np.arange(nframe)
     idx_list = [find_nearest_idx(x, ts_OK) for x in img_ts]
 
@@ -81,11 +92,12 @@ def get_emt_eval(fname, nframe, is_smooth=False, w=5):
         pos_OK[:, 2] = moving_average(pos_OK[:, 2], w)
 
 
-    ts_sync = ts_OK[idx_list]
+    # ts_sync = ts_OK[idx_list] 
     pos_sync = pos_OK[idx_list]
     quat_sync = quat_vec[idx_list]
+    img_ts = img_ts.reshape([-1, 1])
 
-    data = np.concatenate((ts_sync,pos_sync[:,:3],quat_sync), axis=1)
+    data = np.concatenate((img_ts,pos_sync[:,:3],quat_sync), axis=1)
     return data
 
 if __name__ == '__main__':
