@@ -7,32 +7,8 @@ import imageio
 from pathlib import Path as P
 import cv2
 
-gt_file = '/home/dj/git/pyslam/data_prepare/colon/SyntheticColon_I/Train/processed/traj_gt_S01.txt'
-
-est_spp_file = '/home/dj/git/pyslam/data_prepare/colon/SyntheticColon_I/Train/processed/SUPERPOINT_traj_est_S01.txt'
-
-est_loftr_file = '/home/dj/git/pyslam/data_prepare/colon/SyntheticColon_I/Train/processed/LOFTR_traj_est_S01.txt'
-
-traj_gif_file = '/home/dj/git/pyslam/data_prepare/colon/SyntheticColon_I/Train/processed/traj_full.gif'
-traj_vid_file = '/home/dj/git/pyslam/data_prepare/colon/SyntheticColon_I/Train/processed/traj_full.mp4'
-
-img_folder = P('/home/dj/git/pyslam/data_prepare/colon/SyntheticColon_I/Train/processed/traj')
-img_folder.mkdir(exist_ok=True)
-# load trajectory
-
-gt = np.loadtxt(gt_file, delimiter=' ')
-est_spp = np.loadtxt(est_spp_file, delimiter=' ')
-est_loftr = np.loadtxt(est_loftr_file, delimiter=' ')
-
 # plot sin wave
-fig = plt.figure()
-ax = fig.add_subplot(projection='3d')
-ax.set_zlabel("z")
-ax.set_xlabel("x")
-ax.set_ylabel("y")
-gt_color = 'g'
-spp_color = 'r'
-loftr_color = 'b'   
+
 
 def draw_traj_dots(traj, ax, idx, label, color):
     data = traj[:idx+1, :]
@@ -55,29 +31,43 @@ def get_img_from_fig(fig, dpi=100):
 
     return img
 
-plt_imgs_fnames = []
-plt_imgs = []
-for i in range(len(est_loftr)):
+def draw_traj_gif(traj_list, name_list, color_list, img_folder, save_fname, end_frame=None):
+    fig = plt.figure()
+    ax = fig.add_subplot(projection='3d')
+    ax.set_zlabel("z")
+    ax.set_xlabel("x")
+    ax.set_ylabel("y")
+    # gt_color = 'g'
+    # spp_color = 'r'
+    # loftr_color = 'b'   
+    plt_imgs_fnames = []
+    plt_imgs = []
+    if end_frame is None:
+        total_len = len(traj_list[0])
+    else:
+        total_len = end_frame
+    for i in range(total_len):
 
-    draw_traj_dots(gt, ax, i, 'gt', gt_color)
-    draw_traj_dots(est_spp, ax, i, 'superpoint', spp_color)
-    draw_traj_dots(est_loftr, ax, i, 'LoFTR', loftr_color)
+        # draw_traj_dots(gt, ax, i, 'gt', gt_color)
+        # draw_traj_dots(est_spp, ax, i, 'superpoint', spp_color)
+        # draw_traj_dots(est_loftr, ax, i, 'LoFTR', loftr_color)
+        for j in range(len(name_list)):
+            draw_traj_dots(traj_list[j], ax, i, name_list[j], color_list[j])
+        ax.legend()
+        print('processing images %d' % i)
 
-    ax.legend()
-    print('processing images %d' % i)
+        # you can get a high-resolution image as numpy array!!
+        plot_img_np = get_img_from_fig(fig)
+        plt_imgs.append(plot_img_np)
+        img_fname = str(i).zfill(5) + '.png'
+        full_img_fname = img_folder / img_fname
+        plt.imsave(str(full_img_fname), plot_img_np)
+        plt_imgs_fnames.append(str(full_img_fname))
 
-    # you can get a high-resolution image as numpy array!!
-    plot_img_np = get_img_from_fig(fig)
-    plt_imgs.append(plot_img_np)
-    img_fname = str(i).zfill(5) + '.png'
-    full_img_fname = img_folder / img_fname
-    plt.imsave(str(full_img_fname), plot_img_np)
-    plt_imgs_fnames.append(str(full_img_fname))
-
-    plt.cla()
-print('total number of images: %d ' % len(plt_imgs))
-imageio.mimsave(traj_gif_file, plt_imgs, fps=15)
-
+        plt.cla()
+    print('total number of images: %d ' % len(plt_imgs))
+    imageio.mimsave(save_fname, plt_imgs, fps=15)
+    return plt_imgs_fnames
 
 
 
@@ -97,4 +87,30 @@ def frame2Vid(img_list, save_fname, fps=15):
         out.write(img)
     out.release()
 
-frame2Vid(plt_imgs_fnames, traj_vid_file, fps=15)
+def vid2gif(vid_fname, gif_fname):
+    
+    pass
+
+if __name__ == '__main__':
+
+    gt_file = '/home/dj/git/pyslam/data_prepare/colon/SyntheticColon_I/Train/processed/traj_gt_S01.txt'
+
+    est_spp_file = '/home/dj/git/pyslam/data_prepare/colon/SyntheticColon_I/Train/processed/SUPERPOINT_traj_est_S01.txt'
+
+    est_loftr_file = '/home/dj/git/pyslam/data_prepare/colon/SyntheticColon_I/Train/processed/LOFTR_traj_est_S01.txt'
+
+    traj_gif_file = '/home/dj/git/pyslam/data_prepare/colon/SyntheticColon_I/Train/processed/traj_full.gif'
+    traj_vid_file = '/home/dj/git/pyslam/data_prepare/colon/SyntheticColon_I/Train/processed/traj_full.mp4'
+
+    img_folder = P('/home/dj/git/pyslam/data_prepare/colon/SyntheticColon_I/Train/processed/traj')
+    img_folder.mkdir(exist_ok=True)
+    # load trajectory
+
+    gt = np.loadtxt(gt_file, delimiter=' ')
+    est_spp = np.loadtxt(est_spp_file, delimiter=' ')
+    est_loftr = np.loadtxt(est_loftr_file, delimiter=' ')
+
+    traj_list = [gt, est_spp, est_loftr]
+    legend_list = ['gt', 'spp', 'loftr']
+    color_list = ['g', 'b', 'r']
+    draw_traj_gif(traj_list, legend_list, color_list, img_folder, traj_gif_file)

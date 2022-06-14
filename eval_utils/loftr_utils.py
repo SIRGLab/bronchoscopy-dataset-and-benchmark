@@ -118,7 +118,7 @@ def filter_dist(hash_table, dist):
     return new_table
 
 
-def get_filter_num(match_list, thres=None):
+def get_filter_num(match_list, thres=None, percentage=False):
     num_list = []
     for m in match_list:
         if thres is None:
@@ -139,40 +139,55 @@ def print_match(match_num, thres):
         print('%s %s %f' %(mode, base_str, num))
 
 
-def draw_ROC(num_list_thres, thres_list):
+def draw_ROC(num_list_thres, thres_list, ax=None, name=''):
     max_list = [i.max() for i in num_list_thres]
     min_list = [i.min() for i in num_list_thres]
     mean_list = [i.mean() for i in num_list_thres]
-    fig, ax = plt.subplots()
-    ax.plot(max_list, '-o', label='max match')
-    ax.plot(min_list, '-v', label='min match')
-    ax.plot(mean_list, '-s', label='avg match')
+    if ax is None:
+        fig, ax = plt.subplots()
+    ax.plot(max_list, '-o', label='max match %s' % name)
+    ax.plot(min_list, '-v', label='min match %s' % name)
+    ax.plot(mean_list, '-s', label='avg match %s' % name)
     ax.legend()
     ax.set_title('# matches w.r.t pixel distance')
     ax.set_xlabel('pixel distance')
     ax.set_ylabel('# of match')
     plt.xticks(ticks=list(range(len(thres_list))), labels=thres_list)
-    plt.show()
-
-def check_pts_consistency(file_list, thres_list=None):
-    pass
+    
+    
+def get_pts_thres(file_list, thres_list):
     match_list = []
     num_list = []
     dist_list = []
     for i in range(1, len(file_list)):
-        pts_prev = np.loadtxt(file_list[i-1], delimiter=',')[:, 2:]
-        pts_cur = np.loadtxt(file_list[i], delimiter=',')[:, :2]
+        try:
+            pts_prev = np.loadtxt(file_list[i-1], delimiter=',')[:, 2:]
+        except:
+            print('===> illegal file: %s' % file_list[i-1])
+            continue
+        try:
+            pts_cur = np.loadtxt(file_list[i], delimiter=',')[:, :2]
+        except:
+            print('===> illegal file: %s' % file_list[i])
+            continue
         temp = crossFrameMatch(pts_prev, pts_cur)
         num_list += [len(temp.hash_table)]
         dist_list += [temp.mean_dist()]
         match_list += [temp]
 
-    if thres_list is None:
-        thres_list = [1, 0.5, 0.2, 0.1, 0.07, 0.05, 0.02]
 
     num_list_thres = []
 
     for thres in thres_list:
         num_list_thres += [get_filter_num(match_list, thres)]
+    return num_list_thres
 
-    draw_ROC(num_list_thres, thres_list)
+def check_pts_consistency(file_list, thres_list=None, name=''):
+    
+    if thres_list is None:
+        thres_list = [1, 0.5, 0.2, 0.1, 0.07, 0.05, 0.02]
+
+    num_list_thres = get_pts_thres(file_list, thres_list)
+
+
+    draw_ROC(num_list_thres, thres_list, name=name)
