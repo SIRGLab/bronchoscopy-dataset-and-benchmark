@@ -31,6 +31,7 @@ class GroundTruthType(Enum):
     SIMPLE = 4
     COLON = 5
     LUNG = 6
+    ENDOR = 7
 
 
 kScaleSimple = 1 
@@ -58,6 +59,8 @@ def groundtruth_factory(settings):
         return SynColonGroundTruth(path, name, associations, GroundTruthType.COLON)
     if type == 'lung':
         return LungEMT(path, name, associations, GroundTruthType.LUNG)
+    if type == 'endor':
+        return EndorSAGEGT(path, name, associations, type=GroundTruthType.ENDOR)
     if type == 'video' or type == 'folder':   
         name = settings['groundtruth_file']
         return SimpleGroundTruth(path, name, associations, GroundTruthType.SIMPLE)     
@@ -246,5 +249,14 @@ class LungEMT(SynColonGroundTruth):
         super().__init__(path, name, associations, type, load_txt=False)
         self.path = path
         gt_file = Path(path) / (name + '.txt')
+        gt_file = str(gt_file)
+        self.data = np.loadtxt(gt_file, delimiter=' ')
+
+
+class EndorSAGEGT(SynColonGroundTruth):
+    def __init__(self, path, name, associations=None, type=GroundTruthType.ENDOR):
+        super().__init__(path, name, associations, type, load_txt=False)
+        self.path = path
+        gt_file = Path(path) / name / 'pose.txt'
         gt_file = str(gt_file)
         self.data = np.loadtxt(gt_file, delimiter=' ')

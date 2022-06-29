@@ -218,3 +218,25 @@ class FlannFeatureMatcher(FeatureMatcher):
         self.matcher = cv2.FlannBasedMatcher(self.index_params, self.search_params)  
         self.matcher_name = 'FlannFeatureMatcher'                                                
 
+class SuperGlueMatcher():
+    def __init__(self) -> None:
+
+        # define the network as matcher like:
+        # self.matcher = SuperGlue(**kargs)
+        self.matcher = None
+        pass
+    
+    def get_match(self, des0, des1, pts0, pts1):
+        '''
+        input params:
+            @des0: descriptor for frame 0 
+            @des1: descriptor for frame 1
+            @pts0: keypoints for frame 0
+            @pts1: keypoints for frame 1 
+
+        output:
+            @idx0: index of matched keypoints in frame0
+            @idx1: index of matched keypoints in frame1
+        '''
+        # define forward process of superglue
+        pass

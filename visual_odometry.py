@@ -36,7 +36,7 @@ kVerbose=True
 kMinNumFeature = 2000
 kRansacThresholdNormalized = 0.0003  # metric threshold used for normalized image coordinates 
 kRansacThresholdPixels = 0.1         # pixel threshold used for image coordinates 
-kAbsoluteScaleThreshold = 1e-3       # absolute translation scale; it is also the minimum translation norm for an accepted motion 
+kAbsoluteScaleThreshold = 1e-7       # absolute translation scale; it is also the minimum translation norm for an accepted motion 
 kUseEssentialMatrixEstimation = True # using the essential matrix fitting algorithm is more robust RANSAC given five-point algorithm solver 
 kRansacProb = 0.999
 kUseGroundTruthScale = True 
@@ -69,6 +69,7 @@ class VisualOdometry(object):
         self.feature_tracker = feature_tracker
         self.track_result = None 
 
+        self.mask = None # mask of valida region of image input
         self.mask_match = None # mask of matched keypoints used for drawing 
         self.draw_img = None 
 
@@ -197,7 +198,7 @@ class VisualOdometry(object):
         # track features 
         self.timer_feat.start()
         if self.feature_tracker.feature_manager.detector_type == FeatureDetectorTypes.LOFTR:
-            self.track_result = self.feature_tracker.track_LoFTR(self.prev_image, self.cur_image)
+            self.track_result = self.feature_tracker.track_LoFTR(self.prev_image, self.cur_image, self.mask)
         else:
             self.track_result = self.feature_tracker.track(self.prev_image, self.cur_image, self.kps_ref, self.des_ref)
         self.timer_feat.refresh()

@@ -111,14 +111,20 @@ def rpe_metrics_and_plot(traj_ref, traj_est, pose_relation, plot_mode=plot.PlotM
                     name="RPE", title="RPE w.r.t. " + rpe_metric.pose_relation.value, xlabel="$t$ (s)")
     plt.show()
 
-    # plot_mode = plot.PlotMode.xy
-    # fig = plt.figure()
-    # # plt.cla()
-    # ax = plot.prepare_axis(fig, plot_mode)
-    # plot.traj(ax, plot_mode, traj_ref_plot, '--', "gray", "reference")
-    # plot.traj_colormap(ax, traj_est_plot, rpe_metric.error, plot_mode, min_map=rpe_stats["min"], max_map=rpe_stats["max"])
-    # ax.legend()
-    # plt.show()
+def save_evo_traj(traj, fname):
+    quat = traj.orientations_quat_wxyz
+    pos = traj.positions_xyz
+    ts = traj.timestamps.reshape([-1, 1])
+    result = np.concatenate((ts, pos, quat[:,[1,2,3,0]]), axis=1)
+    np.savetxt(fname, result, delimiter=' ')
+
+def save_aligned_traj(fname_ref, fname_est, save_fname):
+    traj_ref = file_interface.read_tum_trajectory_file(fname_ref)
+    traj_est = file_interface.read_tum_trajectory_file(fname_est)
+    traj_est_aligned_scaled = copy.deepcopy(traj_est)
+    traj_est_aligned_scaled.align(traj_ref, correct_scale=True)
+    save_evo_traj(traj_est_aligned_scaled, save_fname)
+
 
 if __name__ == '__main__':
     root_folder = '/home/dj/git/pyslam/data_prepare/colon/SyntheticColon_I/Train/processed/'

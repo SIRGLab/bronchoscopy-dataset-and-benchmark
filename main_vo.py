@@ -29,6 +29,7 @@ from camera  import PinholeCamera
 from ground_truth import groundtruth_factory
 from dataset import dataset_factory
 from utils_geom import savePoseseFile, saveGTPoseFile
+from eval_utils.metric_evaluation import save_aligned_traj
 #from mplot3d import Mplot3d
 #from mplot2d import Mplot2d
 from mplot_thread import Mplot2d, Mplot3d
@@ -76,7 +77,7 @@ if __name__ == "__main__":
     # tracker_config = FeatureTrackerConfigs.LK_SHI_TOMASI
     # tracker_config['num_features'] = num_features
     
-    # # using superpoint as detector and descriptor
+    # using superpoint as detector and descriptor
     # tracker_config = FeatureTrackerConfigs.SUPERPOINT
     # tracker_config['num_features'] = num_features
 
@@ -117,7 +118,7 @@ if __name__ == "__main__":
         out = cv2.VideoWriter(save_vid_name, fourcc, fps, img_size)
 
 
-    if data_type == 'colon':
+    if (data_type == 'colon') or (data_type == 'lung') or (data_type == 'endor'):
         vo.init_pose()
 
     is_draw_3d = True
@@ -133,6 +134,11 @@ if __name__ == "__main__":
     matched_points_plt = Mplot2d(xlabel='img id', ylabel='# matches',title='# matches')
 
     img_id = 0
+
+    mask = dataset.mask
+
+    setattr(vo, 'mask', mask)
+
     while dataset.isOk():
 
         img = dataset.getImage(img_id)
@@ -162,8 +168,8 @@ if __name__ == "__main__":
                     if kUsePangolin:
                         viewer3D.draw_vo(vo)   
                     else:
-                        plt3d.drawTraj(vo.traj3d_gt,'ground truth',color='r',marker='.')
-                        plt3d.drawTraj(vo.traj3d_est,'estimated',color='g',marker='.')
+                        plt3d.drawTraj(vo.traj3d_gt,'ground truth',color='g',marker='.')
+                        plt3d.drawTraj(vo.traj3d_est,'estimated',color='r',marker='.')
                         plt3d.refresh()
 
                 if is_draw_err:         # draw error signals 
@@ -202,7 +208,8 @@ if __name__ == "__main__":
     # save gt pose in the same folder
     gt_file = saveGTPoseFile(config.dataset_settings, groundtruth)
 
-    
+    est_aligned_file = str(est_file)[:-4] + '_aligned.txt'
+    save_aligned_traj(gt_file, est_file, est_aligned_file)
     if is_draw_traj_img:
         print('saving map.png')
         cv2.imwrite('map.png', traj_img)
@@ -221,5 +228,5 @@ if __name__ == "__main__":
     # trajectory evaluation with evo
     # metric_eval(gt_file, est_file, mode='rpe', pose_relation=metrics.PoseRelation.translation_part)
     # metric_eval(gt_file, est_file, mode='rpe', pose_relation=metrics.PoseRelation.rotation_angle_deg)
-    eval_cmd = 'evo_traj tum %s --ref=%s -p --plot_mode=xz' % (gt_file, est_file)
+    eval_cmd = 'evo_traj tum %s --ref=%s -p --plot_mode=xz' % (gt_file, est_aligned_file)
     os.system(eval_cmd)

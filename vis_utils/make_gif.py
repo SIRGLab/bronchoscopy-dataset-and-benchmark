@@ -4,9 +4,9 @@ import cv2
 from pathlib import Path as P
 import argparse
 
-vid_path = P('/home/dj/git/pyslam/data_prepare/lung/vo')
+vid_path = P('/home/dj/git/pyslam/data_prepare/endors/processed')
 
-vid_name = 'lung_LOFTR_029.mp4'
+vid_name = 'endor_LOFTR_000.mp4'
 
 full_name = str(vid_path / vid_name)
 
@@ -45,7 +45,7 @@ cat_imgs = []
 for i, v in enumerate(traj_files_str):
     traj_img = cv2.imread(v)
     match_img = images[i]
-    traj_img = cv2.resize(traj_img, match_img.shape[0:2], cv2.INTER_LINEAR)
+    traj_img = cv2.resize(traj_img, match_img.shape[-2::-1], cv2.INTER_LINEAR)
     final_img = cv2.hconcat((match_img, traj_img))
     cat_imgs += [final_img]
 

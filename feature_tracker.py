@@ -217,8 +217,8 @@ class DescriptorFeatureTracker(FeatureTracker):
     def detectAndCompute(self, frame, mask=None):
         return self.feature_manager.detectAndCompute(frame, mask) 
 
-    def track_LoFTR(self, image_ref, image_cur):
-        kps_prev, kps_cur = self.feature_manager._feature_descriptor.match_img(image_ref, image_cur)
+    def track_LoFTR(self, image_ref, image_cur, mask=None):
+        kps_prev, kps_cur = self.feature_manager._feature_descriptor.match_img(image_ref, image_cur, mask)
         res = FeatureTrackingResult()
         res.kps_ref = np.array([x.pt for x in kps_prev], dtype=np.float32)   # all the reference keypoints  
         res.kps_cur = np.array([x.pt for x in kps_cur], dtype=np.float32)   # all the current keypoints

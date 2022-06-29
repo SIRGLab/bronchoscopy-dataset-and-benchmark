@@ -72,6 +72,14 @@ class LoFTRMatcher2D():
                 'image0': tensor_ref,
                 'image1': tensor_cur
             }
+            if mask is not None:
+                mask[mask > 0] = 1
+                mask_tensor = frame2tensor(self.crop_img(mask), self.device)
+                _, _, h, w = mask_tensor.shape
+                mask_tensor = mask_tensor.reshape([1, h, w])
+                data_dict['mask0'] = mask_tensor
+                data_dict['mask1'] = mask_tensor
+                
             self.net(data_dict)
             vis_range = [0, 2000] # default setting in LoFTR demo
             mkpts0 = data_dict['mkpts0_f'].cpu().numpy()[vis_range[0]:vis_range[1]]

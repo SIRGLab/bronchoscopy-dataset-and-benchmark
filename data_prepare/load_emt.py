@@ -72,6 +72,10 @@ def get_emt_eval(fname, nframe, is_smooth=False, w=5):
 
     pos = frame[['Tx', 'Ty', 'Tz', 'Rx', 'Ry', 'Rz']]
     pos_np = pos.to_numpy()
+
+    # # reverse y axis value, convert it to camera coordinate
+    # pos_np[:, 1] = -pos_np[:, 1]
+    # pos_np[:, 4] = -pos_np[:, 4]
     state_np = state.to_numpy(dtype=str)
     OK_idx = np.where(state_np == 'OK')
     ts_OK = ts[OK_idx]
@@ -79,6 +83,10 @@ def get_emt_eval(fname, nframe, is_smooth=False, w=5):
     pos_OK = pos_np[OK_idx]
 
     rot_vec = pos_OK[:,3:]
+
+    
+
+
     quat_vec = rot2quat(rot_vec)
 
     ts_OK = ts_OK - ts_OK[0]

@@ -25,7 +25,8 @@ import os
 import glob
 import time 
 
-from multiprocessing import Process, Queue, Value 
+from multiprocessing import Process, Queue, Value
+# from ground_truth import EndorSAGEGT 
 from utils_sys import Printer 
 
 
@@ -38,6 +39,7 @@ class DatasetType(Enum):
     LIVE = 6
     COLON = 7
     LUNG = 8
+    ENDOR = 9
 
 
 def dataset_factory(settings):
@@ -69,6 +71,8 @@ def dataset_factory(settings):
         dataset = MedicalVideoDataset(path, name, associations, DatasetType.COLON)
     if type == 'lung':
         dataset = LungDataset(path, name, associations, DatasetType.LUNG)
+    if type == 'endor':
+        dataset = EndorDataset(path, name, associations, DatasetType.ENDOR)
     if type == 'folder':
         fps = 10 # a default value 
         if 'fps' in settings:
@@ -137,6 +141,9 @@ class MedicalVideoDataset(Dataset):
         self.height = None
         self.fps = None
         self.Ts = None
+        self.mask_fname = None
+        self.mask = None
+
         if load_vid:
             self.load_vid()
 
@@ -174,9 +181,18 @@ class LungDataset(MedicalVideoDataset):
         super().__init__(path, name, associations, type, load_vid=False)
         self.filename = path + '/' + name  + '.mp4'
         self.load_vid()
+
+class EndorDataset(MedicalVideoDataset):
+    def __init__(self, path, name, associations=None, type=DatasetType.VIDEO):
+        super().__init__(path, name, associations, type, load_vid=False)
+        self.filename = path + '/' + name  + '/' + 'video_rgb.mp4'
+        self.mask_fname = path + '/' + name  + '/' + 'mask.png'
+        self.get_mask()
+        self.load_vid()
     
-
-
+    def get_mask(self):
+        if self.mask_fname is not None:
+            self.mask = cv2.imread(self.mask_fname)[:, :, 0]
     
 class VideoDataset(Dataset): 
     def __init__(self, path, name, associations=None, type=DatasetType.VIDEO): 
