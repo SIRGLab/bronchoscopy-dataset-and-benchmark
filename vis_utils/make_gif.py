@@ -44,10 +44,13 @@ traj_files_str = [str(x) for x in traj_files]
 cat_imgs = []
 for i, v in enumerate(traj_files_str):
     traj_img = cv2.imread(v)
-    match_img = images[i]
-    traj_img = cv2.resize(traj_img, match_img.shape[-2::-1], cv2.INTER_LINEAR)
-    final_img = cv2.hconcat((match_img, traj_img))
-    cat_imgs += [final_img]
+    try:
+        match_img = images[i]
+        traj_img = cv2.resize(traj_img, match_img.shape[-2::-1], cv2.INTER_LINEAR)
+        final_img = cv2.hconcat((match_img, traj_img))
+        cat_imgs += [final_img]
+    except:
+        continue
 
 
 # %%
