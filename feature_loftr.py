@@ -19,7 +19,12 @@ class LoFTRMatcher2D():
     def __init__(self, cfg) -> None:
         # pass
         self.lock = RLock()
-        self.weights_path=config.cfg.root_folder + '/thirdparty/LoFTR-MedicalData/weights/outdoor_ds.ckpt'
+        # pretrain out-door
+        # self.weights_path=config.cfg.root_folder + '/thirdparty/LoFTR-MedicalData/weights/outdoor_ds.ckpt'
+        # tuned for lung
+        # self.weights_path=config.cfg.root_folder + '/thirdparty/LoFTR-MedicalData/weights/tuned_lung.pt'
+        # tuned for colon
+        self.weights_path=config.cfg.root_folder + '/thirdparty/LoFTR-MedicalData/weights/tuned_colon.pth'
         if cfg is None:
             net_cfg = default_cfg
         else:
@@ -30,7 +35,10 @@ class LoFTRMatcher2D():
         print('===> Loading network with pretrained weights')
         self.net = LoFTR(config=net_cfg)
         if os.path.isfile(self.weights_path):
-            self.net.load_state_dict(torch.load(self.weights_path)['state_dict'])
+            try:
+                self.net.load_state_dict(torch.load(self.weights_path)['state_dict'])
+            except:
+                self.net.load_state_dict(torch.load(self.weights_path))
             print('==> weights successfully loaded.')
         else:
             raise FileNotFoundError('the weights file doesn\'t exist in %s' % self.weights_path)

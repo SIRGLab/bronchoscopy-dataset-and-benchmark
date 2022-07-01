@@ -65,8 +65,8 @@ if __name__ == '__main__':
     save_path = root_path / 'processed'
     save_path.mkdir(exist_ok=True)
     print('===> formating pose file')
-    pos2TUM(root_path, seq_num=1, save_path=save_path)
+    pos2TUM(root_path, seq_num=9, save_path=save_path)
     print('===> formating image file')
-    frame2Vid(root_path, seq_num=1, save_path=save_path)
+    frame2Vid(root_path, seq_num=9, save_path=save_path)
 
 

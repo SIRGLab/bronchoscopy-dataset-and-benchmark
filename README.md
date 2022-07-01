@@ -22,6 +22,40 @@ alt="SLAM" width="600" border="1" />
 <img src="images/feature-matching.png"
 alt="Feature Matching" width="600" border="1" />  </center>
 
+---
+## Usage for medical data
+
+1. Link the data folder to ```./data_prepare``` in this architecture
+
+    ```
+    data_prepare
+    |___ colon
+    |   |
+    |   |___ SyntheticColon_I
+    |   |___ SyntheticColon_II
+    |   |___ other files...
+    |___ endors
+    |   |
+    |   |___ bag_1
+    |   |   |
+    |   |   |__ _start_xxx_end_xxx_...
+    |   |   |__ ...
+    |___ lung
+        |___ 01.avi
+        |___ 01.csv
+        |___ 02.avi
+        |___ 02.csv
+        |___ ...
+        
+    ```
+2. To change the ckpt file for LoFTR, chane the initialization in file ```feature_loftr.py```
+3. Dependencies: mannually install those libraries if you have module not found error.
+4. The configuration of visual odometry is stored in ```./config.ini```, **read it carefully** before you run the visual odometry. Modify the repective settings based on your dataset and data file.
+5. Camera parameters is stored in ```./settings/*.yaml```, make sure you are using the right camera parameter file
+6. Figures will be shown when you run the program. Mannualy save those you think are useful. **Press Q on the image window to close those figures**. Evaluation for APE will be shown after closing the window, save them for further evaluation.
+7. Estimated trajectory, groundtruth trajectory, matching video will be save to the data folder before the program closed.
+8. Further evaluation and visualization scripts can be found in ```./evaluation_utils``` and ```./vis_utils``. All though they might work out-of-the-box, it can give you some hints.
+9. Further information about evaluation, check the repo ```evo``` on github.
 --- 
 ## Updates
 - [2021.02] 
