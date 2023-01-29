@@ -37,10 +37,10 @@ kMinDistanceFromEpipole = Parameters.kMinDistanceFromEpipole
 kMinDistanceFromEpipole2 = kMinDistanceFromEpipole*kMinDistanceFromEpipole
 kCheckFeaturesOrientation = Parameters.kCheckFeaturesOrientation 
 
-
+# ============================================================================================
 # propagate map point matches from f_ref to f_cur (access frames from tracking thread, no need to lock)
 def propagate_map_point_matches(f_ref, f_cur, idxs_ref, idxs_cur,
-                                max_descriptor_distance=Parameters.kMaxDescriptorDistance):
+                                max_descriptor_distance=Parameters.kMaxDescriptorDistance, use_loftr=False):
     idx_ref_out = []
     idx_cur_out = []
     
@@ -60,9 +60,16 @@ def propagate_map_point_matches(f_ref, f_cur, idxs_ref, idxs_cur,
         p_cur = f_cur.points[idx_cur]
         if p_cur is not None: # and p_cur.num_observations > 0: # if we already matched p_cur => no need to propagate anything  
             continue
-        des_distance = p_ref.min_des_distance(f_cur.des[idx_cur])
-        if des_distance > max_descriptor_distance: 
-            continue 
+        # =========================================================
+        # other way to match those points for LoFTR?
+        if use_loftr:
+            # the idx_prev is already matched with idx_cur, since we get them directly from loftr
+            pass
+        else:
+            des_distance = p_ref.min_des_distance(f_cur.des[idx_cur])
+            if des_distance > max_descriptor_distance: 
+                continue 
+        # =========================================================
         if p_ref.add_frame_view(f_cur, idx_cur): # => P is matched to the i-th matched keypoint in f_cur
             num_matched_map_pts += 1
             idx_ref_out.append(idx)
@@ -82,8 +89,12 @@ def propagate_map_point_matches(f_ref, f_cur, idxs_ref, idxs_cur,
         num_matched_map_pts = len(valid_match_idxs)            
                             
     return num_matched_map_pts, idx_ref_out, idx_cur_out  
+# ============================================================================================
+def propagate_map_point_LoFTR():
+    pass
 
-  
+# ============================================================================================
+
 # search by projection matches between {map points of f_ref} and {keypoints of f_cur},  (access frames from tracking thread, no need to lock)
 def search_frame_by_projection(f_ref, f_cur,
                                max_reproj_distance=Parameters.kMaxReprojectionDistanceFrame,

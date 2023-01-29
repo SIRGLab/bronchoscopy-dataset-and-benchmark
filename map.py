@@ -389,7 +389,7 @@ class Map(object):
         keyframes, points, ref_keyframes = self.local_map.update(kf_ref)
         print('local optimization window: ', sorted([kf.id for kf in keyframes]))        
         print('                     refs: ', sorted([kf.id for kf in ref_keyframes]))
-        print('                   #points: ', len(points))               
+        print('                  #points: ', len(points))               
         #print('                   points: ', sorted([p.id for p in points]))        
         #err = optimizer_g2o.optimize(frames, points, None, False, verbose, rounds)  
         err, ratio_bad_observations = optimizer_g2o.local_bundle_adjustment(keyframes, points, ref_keyframes, False, verbose, rounds, abort_flag=abort_flag, map_lock=self.update_lock)

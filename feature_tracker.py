@@ -41,6 +41,7 @@ class FeatureTrackerTypes(Enum):
     LK        = 0   # Lucas Kanade pyramid optic flow (use pixel patch as "descriptor" and matching by optimization)
     DES_BF    = 1   # descriptor-based, brute force matching with knn 
     DES_FLANN = 2   # descriptor-based, FLANN-based matching 
+    LOFTR = 3       # detector-free matching algo
 
 
 def feature_tracker_factory(num_features=kMinNumFeatureDefault, 
@@ -206,6 +207,8 @@ class DescriptorFeatureTracker(FeatureTracker):
             self.matching_algo = FeatureMatcherTypes.FLANN
         elif tracker_type == FeatureTrackerTypes.DES_BF:
             self.matching_algo = FeatureMatcherTypes.BF
+        elif tracker_type == FeatureTrackerTypes.LOFTR:
+            self.matching_algo =  FeatureMatcherTypes.LOFTR
         else:
             raise ValueError("Unmanaged matching algo for feature tracker %s" % self.tracker_type)                   
                     
@@ -232,6 +235,13 @@ class DescriptorFeatureTracker(FeatureTracker):
         res.idxs_cur = np.asarray(match_idx)
         return res
 
+    def detectAndComputeLoFTR(self, image_ref, image_cur, mask):
+        kps_prev, kps_cur = self.feature_manager._feature_descriptor.match_img(image_ref, image_cur, mask)
+        match_idx = np.arange(len(kps_cur)).reshape([-1]).astype(int)
+        match_idx = list(match_idx)
+        idxs_ref = np.asarray(match_idx)
+        idxs_cur = np.asarray(match_idx)
+        return kps_prev, kps_cur, idxs_ref, idxs_cur
     
     # out: FeatureTrackingResult()
     def track(self, image_ref, image_cur, kps_ref, des_ref):

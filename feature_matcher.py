@@ -18,6 +18,7 @@
 """
 import numpy as np 
 import cv2
+# from feature_loftr import LoFTRMatcher2D
 from parameters import Parameters  
 from enum import Enum
 from collections import defaultdict
@@ -30,14 +31,24 @@ class FeatureMatcherTypes(Enum):
     NONE = 0
     BF = 1     
     FLANN = 2
+    LOFTR = 3
 
 
 def feature_matcher_factory(norm_type=cv2.NORM_HAMMING, cross_check=False, ratio_test=kRatioTest, type=FeatureMatcherTypes.FLANN):
-    if type == FeatureMatcherTypes.BF:
-        return BfFeatureMatcher(norm_type=norm_type, cross_check=cross_check, ratio_test=ratio_test, type=type)
-    if type == FeatureMatcherTypes.FLANN:
-        return FlannFeatureMatcher(norm_type=norm_type, cross_check=cross_check, ratio_test=ratio_test, type=type)
-    return None 
+
+    type_dict = {
+        FeatureMatcherTypes.BF: BfFeatureMatcher,
+        FeatureMatcherTypes.FLANN: FlannFeatureMatcher,
+        FeatureMatcherTypes.LOFTR: LoFTRFeatureMatcher
+    }
+
+    # if type == FeatureMatcherTypes.BF:
+    #     return BfFeatureMatcher(norm_type=norm_type, cross_check=cross_check, ratio_test=ratio_test, type=type)
+    # if type == FeatureMatcherTypes.FLANN:
+    #     return FlannFeatureMatcher(norm_type=norm_type, cross_check=cross_check, ratio_test=ratio_test, type=type)
+    matcher = type_dict[type](norm_type=norm_type, cross_check=cross_check, ratio_test=ratio_test, type=type)
+    
+    return matcher 
 
 
 """
@@ -240,3 +251,11 @@ class SuperGlueMatcher():
         '''
         # define forward process of superglue
         pass
+
+class LoFTRFeatureMatcher():
+    def __init__(self, **args) -> None:
+        # place holder
+        self.type = FeatureMatcherTypes.LOFTR
+        pass
+
+    

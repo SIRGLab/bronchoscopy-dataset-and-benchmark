@@ -52,27 +52,30 @@ def make_vid(imgs, save_fname, fps=15):
     out.release()
 
 if __name__ == '__main__':
+    # root_path = P('/home/dj/git/pyslam/data_prepare/new_lung')
     root_path = P('/home/dj/git/pyslam/data_prepare/lung')
+    # root_path = P('/home/dj/git/pyslam/data_prepare/lung/')
+    video_num = 29
     save_dir = root_path / 'processed'
     save_dir.mkdir(exist_ok=True)
     vo_folder = root_path / 'vo'
     vo_folder.mkdir(exist_ok=True)
-    ip_fname = '029.avi'
+    ip_fname = '0%d.avi'%video_num
     tag = ip_fname.split('.')[0]
     img_folder = save_dir / tag
     img_folder.mkdir(exist_ok=True)
-    save_img = False
+    save_img = True
     if save_img:
         print('=====> extracting images')
         extract_img(root_path/ip_fname, img_folder)
     saved_files = sorted(list(img_folder.glob('*.jpg')))
     nframes = len(saved_files)
     print('=====> extracting emt data')
-    syncd_emt = get_emt_eval(str(root_path/'exp1_006.csv'), nframes)
-    np.savetxt(str(save_dir/'029.csv'), syncd_emt, delimiter=',')
-
-    slice_start = 930 # in frame number
-    slice_end = 1100 # in frame number
+    syncd_emt = get_emt_eval(str(root_path/'%d.csv')%video_num, nframes)
+    np.savetxt(str(save_dir/'synced_0%d.csv')%video_num, syncd_emt, delimiter=',')
+    nframes = syncd_emt.shape[0]
+    slice_start = 0 # in frame number
+    slice_end = -90 # in frame number
     print('=====> slicing emt and images')
     emt_part = slice_emt(syncd_emt, slice_start, slice_end)
     img_part = saved_files[slice_start:slice_end]

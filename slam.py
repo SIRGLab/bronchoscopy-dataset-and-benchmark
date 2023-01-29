@@ -64,6 +64,9 @@ kTrackingWaitForLocalMappingSleepTime = Parameters.kTrackingWaitForLocalMappingS
 kLogKFinfoToFile = True 
 
 kUseDynamicDesDistanceTh = True  
+# False for LoFTR
+# kUseDynamicDesDistanceTh = False
+
 
 kRansacThresholdNormalized = 0.0003  # 0.0003 # metric threshold used for normalized image coordinates 
 kRansacProb = 0.999
@@ -358,14 +361,18 @@ class Tracking(object):
         if kUseEssentialMatrixFitting: 
             # estimate camera orientation and inlier matches by fitting and essential matrix (see the limitations above)             
             idxs_ref, idxs_cur = self.estimate_pose_by_fitting_ess_mat(f_ref, f_cur, idxs_ref, idxs_cur)      
-        
+
         if kUseDynamicDesDistanceTh: 
             self.descriptor_distance_sigma = self.dyn_config.update_descriptor_stat(f_ref, f_cur, idxs_ref, idxs_cur)        
                                
         # propagate map point matches from kf_ref to f_cur  (do not override idxs_ref, idxs_cur)
-        num_found_map_pts_inter_frame, idx_ref_prop, idx_cur_prop = propagate_map_point_matches(f_ref, f_cur, idxs_ref, idxs_cur, 
-                                                                                                max_descriptor_distance=self.descriptor_distance_sigma) 
-        print("# matched map points in prev frame: %d " % num_found_map_pts_inter_frame)      
+        # re-write this function for LoFTR
+        use_loftr = f_ref.use_loftr
+        num_found_map_pts_inter_frame, idx_ref_prop, idx_cur_prop = \
+            propagate_map_point_matches(f_ref, f_cur, idxs_ref, idxs_cur, 
+                                        max_descriptor_distance=self.descriptor_distance_sigma,
+                                        use_loftr=use_loftr) 
+        print("# matched map points in reference frame: %d " % num_found_map_pts_inter_frame)      
                 
         if kDebugDrawMatches and True: 
             img_matches = draw_feature_matches(f_ref.img, f_cur.img, 
@@ -389,7 +396,7 @@ class Tracking(object):
         if not self.pose_is_ok or self.num_matched_map_points < kNumMinInliersPoseOptimizationTrackFrame:
             f_cur.remove_frame_views(idxs_cur)
             f_cur.reset_points()               
-            Printer.red('failure in tracking reference %d, # matched map points: %d' %(f_ref.id,self.num_matched_map_points))  
+            Printer.red('%d, # matched map points: %d' %(f_ref.id,self.num_matched_map_points))  
             self.pose_is_ok = False            
         
         
@@ -509,9 +516,11 @@ class Tracking(object):
     def track(self, img, frame_id, timestamp=None):
         Printer.cyan('@tracking')
         time_start = time.time()
-                
+        
         # check image size is coherent with camera params 
         print("img.shape: ", img.shape)
+        if img.ndim>2:
+            img = cv2.cvtColor(img,cv2.COLOR_RGB2GRAY) 
         print("camera ", self.camera.height," x ", self.camera.width)
         assert img.shape[0:2] == (self.camera.height, self.camera.width)   
         if timestamp is not None: 
@@ -520,24 +529,33 @@ class Tracking(object):
         self.timer_main_track.start()
 
         # build current frame 
-        self.timer_frame.start()        
+        self.timer_frame.start()  
+        # =======================================
+        # change the frame initialization for LoFTR
         f_cur = Frame(img, self.camera, timestamp=timestamp) 
         self.f_cur = f_cur 
         print("frame: ", f_cur.id)        
+        # =======================================
         self.timer_frame.refresh()   
         
         # reset indexes of matches 
         self.idxs_ref = [] 
         self.idxs_cur = []           
-        
+        # =======================================
+        # no images yet  
         if self.state == SlamState.NO_IMAGES_YET: 
             # push first frame in the inizializer 
             self.intializer.init(f_cur) 
             self.state = SlamState.NOT_INITIALIZED
             return # EXIT (jump to second frame)
         
+        # =======================================
+        #  not initialized yet
+        # =======================================
         if self.state == SlamState.NOT_INITIALIZED:
+            
             # try to inizialize 
+            # frame matches inside the intializer.initialize()
             initializer_output, intializer_is_ok = self.intializer.initialize(f_cur, img)
             if intializer_is_ok:
                 kf_ref = initializer_output.kf_ref
@@ -574,9 +592,12 @@ class Tracking(object):
                 if kUseDynamicDesDistanceTh: 
                     self.descriptor_distance_sigma = self.dyn_config.update_descriptor_stat(kf_ref, kf_cur, initializer_output.idxs_ref, initializer_output.idxs_cur)                     
             return # EXIT (jump to next frame)
-        
+        # =======================================
+        # map initialized
+        # =======================================
+
         # get previous frame in map as reference        
-        f_ref   = self.map.get_frame(-1) 
+        f_ref = self.map.get_frame(-1) 
         #f_ref_2 = self.map.get_frame(-2)
         self.f_ref = f_ref 
         

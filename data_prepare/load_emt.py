@@ -90,7 +90,7 @@ def get_emt_eval(fname, nframe, is_smooth=False, w=5):
     quat_vec = rot2quat(rot_vec)
 
     ts_OK = ts_OK - ts_OK[0]
-    ts_OK = ts_OK / max(ts_OK) * nframe
+    ts_OK = ts_OK / max(ts_OK) * (nframe-1)
     img_ts = np.arange(nframe)
     idx_list = [find_nearest_idx(x, ts_OK) for x in img_ts]
 

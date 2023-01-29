@@ -61,16 +61,16 @@ class Parameters(object):
     kInitializerDesiredMedianDepth = 20    # when initializing, the initial median depth is computed and forced to this value (for better visualization is > 1) 
     kMinRatioBaselineDepth = 0.01 
     #kMinTraslation = 0.01*kInitializerDesiredMedianDepth  # not used at the present time     
-    kInitializerNumMinFeatures = 100
-    kInitializerNumMinTriangulatedPoints = 100
+    kInitializerNumMinFeatures = 50 # default 100
+    kInitializerNumMinTriangulatedPoints = 10 # default 100
     kFeatureMatchRatioTestInitializer = 0.8   # ratio test used by Initializer        
 
 
     # Tracking 
-    kUseMotionModel = True                            # use or not the motion model for computing a first guess pose (that will be optimized by pose optimization)  
-    kUseSearchFrameByProjection = True                # match frames by using frame map points projection and epipolar lines; here, the current available interframe pose estimate is used for computing the fundamental mat F
+    kUseMotionModel = False                            # use or not the motion model for computing a first guess pose (that will be optimized by pose optimization)  
+    kUseSearchFrameByProjection = False                # match frames by using frame map points projection and epipolar lines; here, the current available interframe pose estimate is used for computing the fundamental mat F
     kMinNumMatchedFeaturesSearchFrameByProjection=20  # if the number of tracked features is below this, then the search fails 
-    kUseEssentialMatrixFitting = False                # fit an essential matrix; orientation and keypoint match inliers are estimated by fitting an essential mat (5 points algorithm), 
+    kUseEssentialMatrixFitting = True                # fit an essential matrix; orientation and keypoint match inliers are estimated by fitting an essential mat (5 points algorithm), 
                                                       # WARNING: essential matrix fitting comes with some limitations (please, read the comments of the method slam.estimate_pose_ess_mat())
     kMaxNumOfKeyframesInLocalMap = 80
     kNumBestCovisibilityKeyFrames = 10

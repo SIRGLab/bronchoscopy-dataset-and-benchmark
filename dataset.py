@@ -54,6 +54,9 @@ def dataset_factory(settings):
     path = settings['base_path'] 
     path = os.path.expanduser(path)
     
+    # for lung only
+    tag = settings['tag']
+
     if 'associations' in settings:
         associations = settings['associations']
     if 'is_color' in settings:
@@ -70,7 +73,7 @@ def dataset_factory(settings):
     if type == 'colon':
         dataset = MedicalVideoDataset(path, name, associations, DatasetType.COLON)
     if type == 'lung':
-        dataset = LungDataset(path, name, associations, DatasetType.LUNG)
+        dataset = LungDataset(path, name, associations, DatasetType.LUNG, tag=tag)
     if type == 'endor':
         dataset = EndorDataset(path, name, associations, DatasetType.ENDOR)
     if type == 'folder':
@@ -177,9 +180,12 @@ class MedicalVideoDataset(Dataset):
         return image    
 
 class LungDataset(MedicalVideoDataset):
-    def __init__(self, path, name, associations=None, type=DatasetType.VIDEO):
+    def __init__(self, path, name, associations=None, type=DatasetType.VIDEO, tag=None):
         super().__init__(path, name, associations, type, load_vid=False)
-        self.filename = path + '/' + name  + '.mp4'
+        if tag is None:
+            self.filename = path + '/' + name  + '.mp4'
+        else:
+            self.filename = path + '/' + tag + '/' + name + '.mp4'
         self.load_vid()
 
 class EndorDataset(MedicalVideoDataset):

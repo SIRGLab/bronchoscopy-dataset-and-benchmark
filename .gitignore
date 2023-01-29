@@ -24,3 +24,5 @@ data_prepare/endors
 data_prepare/lung
 eval_utils/result
 draft
+new_lung
+data_prepare

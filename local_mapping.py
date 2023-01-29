@@ -315,7 +315,8 @@ class LocalMapping(object):
         return num_culled_keyframes
 
 
-    def precompute_kps_matches(self, match_idxs, local_keyframes):            
+    def precompute_kps_matches(self, match_idxs, local_keyframes):
+        # match kps from current frame to other key frames
         kf_pairs = []
         if not Parameters.kLocalMappingParallelKpsMatching: 
             # do serial computation 

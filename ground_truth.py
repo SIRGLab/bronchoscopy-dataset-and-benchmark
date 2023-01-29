@@ -47,6 +47,7 @@ def groundtruth_factory(settings):
     type = settings['type']
     path = settings['base_path']
     name = settings['name']
+    tag = settings['tag']
            
     print('using groundtruth: ', type)   
     if type == 'kitti':         
@@ -58,6 +59,7 @@ def groundtruth_factory(settings):
     if type == 'colon':
         return SynColonGroundTruth(path, name, associations, GroundTruthType.COLON)
     if type == 'lung':
+        path = path + '/' + tag
         return LungEMT(path, name, associations, GroundTruthType.LUNG)
     if type == 'endor':
         return EndorSAGEGT(path, name, associations, type=GroundTruthType.ENDOR)
@@ -250,7 +252,10 @@ class LungEMT(SynColonGroundTruth):
         self.path = path
         gt_file = Path(path) / (name + '.txt')
         gt_file = str(gt_file)
-        self.data = np.loadtxt(gt_file, delimiter=' ')
+        try:
+            self.data = np.loadtxt(gt_file, delimiter=' ')
+        except:
+            self.data = None
 
 
 class EndorSAGEGT(SynColonGroundTruth):

@@ -20,6 +20,7 @@
 import numpy as np 
 import cv2
 from enum import Enum
+from pyquaternion import Quaternion
 
 from feature_tracker import FeatureTrackerTypes, FeatureTrackingResult
 from feature_types import FeatureDetectorTypes
@@ -98,14 +99,29 @@ class VisualOdometry(object):
         except:
             self.save_path = None
 
+    def init_emt_pose(self):
+        # rot = np.array([[ 0.13483874,  0.99054249, -0.02537896],
+        # [-0.99066138,  0.13528892,  0.01693898],
+        # [ 0.02021227,  0.02285792,  0.99953438]])
+        # cam_rot = np.linalg.inv(rot)
+        # starting_pos = self.groundtruth.data[0] # [ts, x, y, z, qx, qy, qz, qw]
+        # rot = R.from_quat(starting_pos[4:])
+        # rot_m = rot.as_matrix()
+        # t = starting_pos[1:4].reshape([3, 1])
+        # self.cur_R = rot_m
+        # # self.cur_R = self.cur_R.dot(cam_rot)
+        # self.cur_t = t
+        pass
+
     def init_pose(self):
         # tum data only
-        starting_pos = self.groundtruth.data[0] # [ts, x, y, z, qx, qy, qz, qw]
-        rot = R.from_quat(starting_pos[4:])
-        rot_m = rot.as_matrix()
-        t = starting_pos[1:4].reshape([3, 1])
-        self.cur_R = rot_m
-        self.cur_t = t
+        if self.groundtruth is not None:
+            starting_pos = self.groundtruth.data[0] # [ts, x, y, z, qx, qy, qz, qw]
+            rot = R.from_quat(starting_pos[4:])
+            rot_m = rot.as_matrix()
+            t = starting_pos[1:4].reshape([3, 1])
+            self.cur_R = rot_m
+            self.cur_t = t
         
     # get current translation scale from ground-truth if groundtruth is not None 
     def getAbsoluteScale(self, frame_id):  
@@ -166,7 +182,7 @@ class VisualOdometry(object):
         _, R, t, mask = cv2.recoverPose(E, self.kpn_cur, self.kpn_ref, focal=1, pp=(0., 0.))   
         print('recovered rotation matrix: \n' , R)
         print('recovered translation matrix: \n ', t)
-
+        print('number of inliers: %d' % self.mask_match.sum())
         return R,t  # Rrc, trc (with respect to 'ref' frame) 		
 
     def save_matches(self, frame_id):
@@ -175,7 +191,7 @@ class VisualOdometry(object):
         base_fname = 'frame_%04d.txt' % frame_id
         all_match_fname = self.save_path / ('all_' + base_fname)
         inlier_fname = self.save_path / ('inliers_' + base_fname)
-        all_match = np.concatenate((self.kpn_cur, self.kpn_ref), axis=1)
+        all_match = np.concatenate((self.track_result.kps_cur_matched, self.track_result.kps_ref_matched), axis=1)
         inlier_idx = np.where(self.mask_match == 1)
         inlier_match = all_match[inlier_idx[0], :]
         print('======> saving matches to %s...' % self.save_path)
@@ -207,7 +223,10 @@ class VisualOdometry(object):
         R, t = self.estimatePose(self.track_result.kps_ref_matched, self.track_result.kps_cur_matched)     
         self.timer_pose_est.refresh()
         # save matches to file
-        self.save_matches(frame_id)
+        try:
+            self.save_matches(frame_id)
+        except:
+            pass
         # update keypoints history  
         self.kps_ref = self.track_result.kps_ref
         self.kps_cur = self.track_result.kps_cur

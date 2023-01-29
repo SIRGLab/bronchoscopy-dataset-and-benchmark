@@ -122,11 +122,7 @@ class Initializer(object):
         # append current frame 
         self.frames.append(f_cur)
 
-        # if the current frames do no have enough features exit 
-        if len(f_ref.kps) < self.num_min_features or len(f_cur.kps) < self.num_min_features:
-            Printer.red('Inializer: ko - not enough features!') 
-            self.num_failures += 1
-            return out, is_ok
+        
 
         # find keypoint matches
         # =========================== modified by DJ ===============================
@@ -136,6 +132,14 @@ class Initializer(object):
             idxs_cur, idxs_ref = match_frames(f_cur, f_ref, kFeatureMatchRatioTestInitializer) 
         # =========================== modified by DJ ===============================
     
+        # the statement run after the matches to be compatible with loftr
+        # if the current frames do no have enough features exit 
+        if len(f_ref.kps) < self.num_min_features or len(f_cur.kps) < self.num_min_features:
+            Printer.red('Inializer: ko - not enough features!') 
+            self.num_failures += 1
+            return out, is_ok
+
+
         print('|------------')        
         #print('deque ids: ', [f.id for f in self.frames])
         print('initializing frames ', f_cur.id, ', ', f_ref.id)
@@ -168,7 +172,7 @@ class Initializer(object):
         
         pts3d, mask_pts3d = triangulate_normalized_points(kf_cur.Tcw, kf_ref.Tcw, kf_cur.kpsn[idx_cur_inliers], kf_ref.kpsn[idx_ref_inliers])
 
-        new_pts_count, mask_points, _ = map.add_points(pts3d, mask_pts3d, kf_cur, kf_ref, idx_cur_inliers, idx_ref_inliers, img_cur, do_check=True, cos_max_parallax=Parameters.kCosMaxParallaxInitializer)
+        new_pts_count, mask_points, _ = map.add_points(pts3d, mask_pts3d, kf_cur, kf_ref, idx_cur_inliers, idx_ref_inliers, img_cur, do_check=False, cos_max_parallax=Parameters.kCosMaxParallaxInitializer)
         print("# triangulated points: ", new_pts_count)   
                         
         if new_pts_count > self.num_min_triangulated_points:  

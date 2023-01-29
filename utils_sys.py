@@ -257,4 +257,10 @@ def get_opencv_version():
 
 def is_opencv_version_greater_equal(a, b, c):
     opencv_version = get_opencv_version()
-    return opencv_version[0]>=a and opencv_version[1]>=b and opencv_version[2]>=c
+    ver_str_list = [str(x) for x in opencv_version]
+    ver_str = ''.join(ver_str_list)
+    ver_int = int(ver_str)
+
+    required_ver = int(str(a) + str(b) + str(c))
+
+    return ver_int > required_ver

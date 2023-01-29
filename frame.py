@@ -17,11 +17,15 @@
 * along with PYSLAM. If not, see <http://www.gnu.org/licenses/>.
 """
 
+import enum
+from hashlib import new
+from nis import match
 import cv2
 import numpy as np
 #import g2o
 
 from threading import RLock, Thread
+from numpy import record
 from scipy.spatial import cKDTree
 
 from parameters import Parameters  
@@ -30,7 +34,7 @@ from camera_pose import CameraPose
 
 from utils_geom import add_ones, poseRt, normalize
 from utils_sys import myjet, Printer
-
+import scipy 
 
 kDrawFeatureRadius = [r*5 for r in range(1,100)]
 kDrawOctaveColor = np.linspace(0, 255, 12)
@@ -268,29 +272,199 @@ class Frame(FrameBase):
         
         self.kf_ref = None        # reference keyframe 
 
+        # check feature detector type
+        detector_name = Frame.tracker.descriptor_type.name
+        if detector_name.lower() == 'loftr':
+            self.use_loftr = True
+        else:
+            self.use_loftr = False
+
         if img is not None:
-            #self.H, self.W = img.shape[0:2]                 
-            if Frame.is_store_imgs: 
+            #self.H, self.W = img.shape[0:2]          
+            # store the image in the frame when using LoFTR       
+            if Frame.is_store_imgs or self.use_loftr: 
                 self.img = img.copy()  
             else: 
                 self.img = None                    
-            if kps_data is None:   
-                self.kps, self.des = Frame.tracker.detectAndCompute(img)                                                         
-                # convert from a list of keypoints to arrays of points, octaves, sizes  
-                kps_data = np.array([ [x.pt[0], x.pt[1], x.octave, x.size, x.angle] for x in self.kps ], dtype=np.float32)                            
-                self.kps     = kps_data[:,:2]    
-                self.octaves = np.uint32(kps_data[:,2]) #print('octaves: ', self.octaves)                      
-                self.sizes   = kps_data[:,3]
-                self.angles  = kps_data[:,4]       
+            if kps_data is None:  
+                if self.use_loftr:
+                    pass
+                else: 
+                    self.kps, self.des = Frame.tracker.detectAndCompute(img)                                                         
+                    # convert from a list of keypoints to arrays of points, octaves, sizes  
+                    kps_data = np.array([ [x.pt[0], x.pt[1], x.octave, x.size, x.angle] for x in self.kps ], dtype=np.float32)                            
+                    self.kps     = kps_data[:,:2]    
+                    self.octaves = np.uint32(kps_data[:,2]) #print('octaves: ', self.octaves)                      
+                    self.sizes   = kps_data[:,3]
+                    self.angles  = kps_data[:,4]
+                    self.kpsu = self.camera.undistort_points(self.kps) # convert to undistorted keypoint coordinates             
+                    self.kpsn = self.camera.unproject_points(self.kpsu)
+                    self.points = np.array( [None]*len(self.kpsu) )  # init map points
+                    self.outliers = np.full(self.kpsu.shape[0], False, dtype=bool)       
             else:
                 # FIXME: this must be updated according to the new serialization 
                 #self.kpsu, self.des = des, np.array(list(range(len(des)))*32, np.uint8).reshape(32, len(des)).T
                 pass 
-            self.kpsu = self.camera.undistort_points(self.kps) # convert to undistorted keypoint coordinates             
-            self.kpsn = self.camera.unproject_points(self.kpsu)
-            self.points = np.array( [None]*len(self.kpsu) )  # init map points
-            self.outliers = np.full(self.kpsu.shape[0], False, dtype=bool)
             
+    
+    def set_Frame_pts(self, kps, idxs):
+        # only applicable when using LoFTR
+        if not self.use_loftr:
+            raise RuntimeError('This function is only available when using LoFTR!')
+        kps_data = np.array([ [x.pt[0], x.pt[1], x.octave, x.size, x.angle] for x in kps ], dtype=np.float32)
+
+        # merge kps for LoFTR
+        if self.kps is not None:
+            # new_idxs, kps_data = self.merge_kps(kps_data, idxs)
+            new_kps = kps_data[:,:2]    
+            des     = kps_data[:,:2] # using fake descriptor
+            octaves = np.uint32(kps_data[:,2]) #print('octaves: ', self.octaves)                      
+            sizes   = kps_data[:,3]
+            angles  = kps_data[:,4]       
+            kpsu    = self.camera.undistort_points(new_kps) # convert to undistorted keypoint coordinates             
+            kpsn    = self.camera.unproject_points(kpsu)
+            points  = np.array( [None]*len(kpsu) )  # init map points
+            outliers = np.full(kpsu.shape[0], False, dtype=bool)
+
+            # merge keypoints based on kpsn 
+            # op_idx, final_merge_idx = self.merge_kpsn(kpsn=kpsn, thres=0.1)
+            op_idx, final_merge_idx = self.merge_kps(kps=new_kps, thres=0.1)
+
+            # delete merged pts
+            new_kps  = np.delete(new_kps , final_merge_idx, axis=0)
+            des      = np.delete(des     , final_merge_idx, axis=0)
+            octaves  = np.delete(octaves , final_merge_idx, axis=0)
+            sizes    = np.delete(sizes   , final_merge_idx, axis=0)
+            angles   = np.delete(angles  , final_merge_idx, axis=0)
+            kpsu     = np.delete(kpsu    , final_merge_idx, axis=0)
+            kpsn     = np.delete(kpsn    , final_merge_idx, axis=0)
+            points   = np.delete(points  , final_merge_idx, axis=0)
+            outliers = np.delete(outliers, final_merge_idx, axis=0)
+
+
+            self.kps = np.concatenate((self.kps, new_kps), axis=0)
+            self.des = np.concatenate((self.des, des), axis=0)
+            self.octaves = np.concatenate((self.octaves, octaves), axis=0)
+            self.sizes = np.concatenate((self.sizes, sizes), axis=0)
+            self.angles = np.concatenate((self.angles, angles), axis=0)
+            self.kpsu = np.concatenate((self.kpsu, kpsu), axis=0)
+            self.kpsn = np.concatenate((self.kpsn, kpsn), axis=0)
+            self.points = np.concatenate((self.points, points), axis=0)
+            self.outliers = np.concatenate((self.outliers, outliers), axis=0)
+            return op_idx
+        else:
+            self.kps     = kps_data[:,:2]    
+            self.des     = kps_data[:,:2] # using fake descriptor
+            self.octaves = np.uint32(kps_data[:,2]) #print('octaves: ', self.octaves)                      
+            self.sizes   = kps_data[:,3]
+            self.angles  = kps_data[:,4]       
+            self.kpsu    = self.camera.undistort_points(self.kps) # convert to undistorted keypoint coordinates             
+            self.kpsn    = self.camera.unproject_points(self.kpsu)
+            self.points  = np.array( [None]*len(self.kpsu) )  # init map points
+            self.outliers = np.full(self.kpsu.shape[0], False, dtype=bool)
+            return idxs
+
+
+    def merge_kpsn(self, kpsn, thres=0.01, avg=False):
+        old_kpsn = self.kpsn
+        dist_matrix = scipy.spatial.distance.cdist(old_kpsn, kpsn)
+        # delete kps with less than 0.1 pix distance with old_kps
+        min_idx = np.argmin(dist_matrix, axis=1).reshape(-1)
+        min_v = np.min(dist_matrix, axis=1).reshape(-1)
+
+        # match idxs should be modified
+        merged_new_idx = min_idx[min_v < thres]
+        merged_old_idx = np.arange(len(self.kps)).astype(min_idx.dtype).reshape(-1)
+        merged_old_idx = merged_old_idx[min_v < thres]
+        merged_value = min_v[min_v < thres]
+        print('Number of merged kpts with distance < %d pixel is: %d' % ( thres, len(merged_value)))
+        # make sure to be a one-to-one match
+        match_dict = {}
+        dist_dict = {}
+        for i, _ in enumerate(merged_old_idx):
+            # remove duplicate new_idx
+            old_idx = merged_old_idx[i]
+            new_idx = merged_new_idx[i]
+            dist = merged_value[i]
+            is_exist = match_dict.get(new_idx, None)
+            if is_exist is None:
+                match_dict[new_idx] = old_idx
+                dist_dict[new_idx] = dist
+            else:
+                old_dist = dist_dict[new_idx]
+                if dist < old_dist:
+                    match_dict[new_idx] = old_idx
+                    dist_dict[new_idx] = old_idx
+        final_new_idxs = np.array(list(match_dict.keys()))
+        final_old_idxs = np.array(list(match_dict.values()))
+
+        new_kps_data = np.delete(kpsn, final_new_idxs, axis=0)
+        # generate new idxs
+        op_idxs = np.arange(len(new_kps_data))
+        sorted_merge_idxs = sorted(final_new_idxs)
+        for i in sorted_merge_idxs:
+            op_idxs = np.insert(op_idxs, i, 0)
+
+
+        op_idxs[final_new_idxs] = final_old_idxs
+
+        return op_idxs, final_new_idxs
+
+
+    def merge_kps(self, kps, thres=1, avg=False):
+
+        '''
+        kps_data: input np array, Nx5
+        idxs: np array Nx1
+        '''
+        
+        old_kps = self.kps
+        dist_matrix = scipy.spatial.distance.cdist(old_kps, kps)
+        # delete kps with less than 0.1 pix distance with old_kps
+        min_idx = np.argmin(dist_matrix, axis=1).reshape(-1)
+        min_v = np.min(dist_matrix, axis=1).reshape(-1)
+
+        # match idxs should be modified
+        merged_new_idx = min_idx[min_v < thres]
+        merged_old_idx = np.arange(len(self.kps)).astype(min_idx.dtype).reshape(-1)
+        merged_old_idx = merged_old_idx[min_v < thres]
+        merged_value = min_v[min_v < thres]
+        
+        # make sure to be a one-to-one match
+        match_dict = {}
+        dist_dict = {}
+        for i, _ in enumerate(merged_old_idx):
+            # remove duplicate new_idx
+            old_idx = merged_old_idx[i]
+            new_idx = merged_new_idx[i]
+            dist = merged_value[i]
+            is_exist = match_dict.get(new_idx, None)
+            if is_exist is None:
+                match_dict[new_idx] = old_idx
+                dist_dict[new_idx] = dist
+            else:
+                old_dist = dist_dict[new_idx]
+                if dist < old_dist:
+                    match_dict[new_idx] = old_idx
+                    dist_dict[new_idx] = old_idx
+        final_new_idxs = np.array(list(match_dict.keys()))
+        final_old_idxs = np.array(list(match_dict.values()))
+
+        new_kps_data = np.delete(kps, final_new_idxs, axis=0)
+        # generate new idxs
+        op_idxs = np.arange(len(new_kps_data))
+        sorted_merge_idxs = sorted(final_new_idxs)
+        for i in sorted_merge_idxs:
+            op_idxs = np.insert(op_idxs, i, 0)
+
+
+        op_idxs[final_new_idxs] = final_old_idxs
+        print('Number of merged kpts with distance < %.3f pixel is: %d' % ( thres, len(final_new_idxs)))
+        return op_idxs, final_new_idxs
+
+
+
+
     @staticmethod
     def set_tracker(tracker):
         Frame.tracker = tracker 
@@ -527,8 +701,12 @@ def match_frames(f1, f2, ratio_test=None):
     idx2 = np.asarray(idx2)   
     return idx1, idx2         
 
-def match_frames_with_loftr(f_cur, f_prev, ration_test=None):
+def match_frames_with_loftr(f_cur, f_prev, ration_test=None, mask=None):
     # get matched keypoints from loftr
+    kps_prev, kps_cur, idxs_prev, idxs_cur = Frame.tracker.detectAndComputeLoFTR(f_prev.img, f_cur.img, mask=mask)
     
-    # return pseudo idxs
-    pass
+    # setup kps for f_prev
+    new_idx_prev = f_prev.set_Frame_pts(kps_prev, idxs_prev)
+    # setup kps for f_cur
+    _ = f_cur.set_Frame_pts(kps_cur, None)
+    return idxs_cur, new_idx_prev

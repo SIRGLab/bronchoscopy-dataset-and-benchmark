@@ -68,12 +68,18 @@ if __name__ == "__main__":
     
     num_features=2000 
 
-    tracker_type = FeatureTrackerTypes.DES_BF      # descriptor-based, brute force matching with knn 
+    # tracker_type = FeatureTrackerTypes.DES_BF      # descriptor-based, brute force matching with knn 
     #tracker_type = FeatureTrackerTypes.DES_FLANN  # descriptor-based, FLANN-based matching 
 
     # select your tracker configuration (see the file feature_tracker_configs.py) 
-    # FeatureTrackerConfigs: SHI_TOMASI_ORB, FAST_ORB, ORB, ORB2, ORB2_FREAK, ORB2_BEBLID, BRISK, AKAZE, FAST_FREAK, SIFT, ROOT_SIFT, SURF, SUPERPOINT, FAST_TFEAT, CONTEXTDESC
-    tracker_config = FeatureTrackerConfigs.TEST
+    # FeatureTrackerConfigs: 
+    # SHI_TOMASI_ORB, FAST_ORB, ORB, ORB2, ORB2_FREAK, ORB2_BEBLID, 
+    # BRISK, AKAZE, FAST_FREAK, SIFT, ROOT_SIFT, SURF, 
+    # SUPERPOINT, FAST_TFEAT, CONTEXTDESC
+    # tracker_config = FeatureTrackerConfigs.SUPERPOINT
+    # configuration for LoFTR
+    tracker_type = FeatureTrackerTypes.LOFTR
+    tracker_config = FeatureTrackerConfigs.LOFTR
     tracker_config['num_features'] = num_features
     tracker_config['tracker_type'] = tracker_type
     

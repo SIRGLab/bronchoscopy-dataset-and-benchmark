@@ -92,8 +92,13 @@ if __name__ == "__main__":
 
     feature_tracker = feature_tracker_factory(**tracker_config)
 
+    use_gt = False
+
     # create visual odometry object 
-    vo = VisualOdometry(cam, groundtruth, feature_tracker)
+    if use_gt:
+        vo = VisualOdometry(cam, groundtruth, feature_tracker)
+    else:
+        vo = VisualOdometry(cam, None, feature_tracker)
 
     is_draw_traj_img = True
     traj_img_size = 800
@@ -119,7 +124,10 @@ if __name__ == "__main__":
 
 
     if (data_type == 'colon') or (data_type == 'lung') or (data_type == 'endor'):
-        vo.init_pose()
+        if data_type == 'lung':
+            vo.init_emt_pose()
+        else:
+            vo.init_pose()
 
     is_draw_3d = True
     if kUsePangolin:
@@ -206,10 +214,13 @@ if __name__ == "__main__":
         out.release()
     est_file = savePoseseFile(config.dataset_settings, vo.abs_poses, detector_name=detector_name)
     # save gt pose in the same folder
-    gt_file = saveGTPoseFile(config.dataset_settings, groundtruth)
+    try:
+        gt_file = saveGTPoseFile(config.dataset_settings, groundtruth)
 
-    est_aligned_file = str(est_file)[:-4] + '_aligned.txt'
-    save_aligned_traj(gt_file, est_file, est_aligned_file)
+        est_aligned_file = str(est_file)[:-4] + '_aligned.txt'
+        save_aligned_traj(gt_file, est_file, est_aligned_file)
+    except:
+        pass
     if is_draw_traj_img:
         print('saving map.png')
         cv2.imwrite('map.png', traj_img)
@@ -228,5 +239,5 @@ if __name__ == "__main__":
     # trajectory evaluation with evo
     # metric_eval(gt_file, est_file, mode='rpe', pose_relation=metrics.PoseRelation.translation_part)
     # metric_eval(gt_file, est_file, mode='rpe', pose_relation=metrics.PoseRelation.rotation_angle_deg)
-    eval_cmd = 'evo_traj tum %s --ref=%s -p --plot_mode=xz' % (gt_file, est_aligned_file)
-    os.system(eval_cmd)
+    # eval_cmd = 'evo_traj tum %s --ref=%s -p --plot_mode=xz' % (gt_file, est_aligned_file)
+    # os.system(eval_cmd)

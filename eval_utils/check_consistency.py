@@ -7,9 +7,10 @@ from loftr_utils import *
 import matplotlib.pyplot as plt
 
 # %%
+# draw lung
+# root_path = P('/home/dj/git/pyslam/data_prepare/lung/vo')
 # draw colon
-root_path = P('/home/dj/git/pyslam/data_prepare/lung/vo')
-
+root_path = P('/home/dj/git/pyslam/data_prepare/colon/SyntheticColon_I/Train/processed')
 loft_path = root_path / 'matches_LOFTR'
 spp_path = root_path / 'matches_SUPERPOINT'
 

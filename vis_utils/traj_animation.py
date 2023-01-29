@@ -31,7 +31,7 @@ def get_img_from_fig(fig, dpi=100):
 
     return img
 
-def draw_traj_gif(traj_list, name_list, color_list, img_folder, save_fname, end_frame=None):
+def draw_traj_gif(traj_list, name_list, color_list, img_folder, save_fname, end_frame=None, save_gif=True):
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
     ax.set_zlabel("z")
@@ -66,7 +66,8 @@ def draw_traj_gif(traj_list, name_list, color_list, img_folder, save_fname, end_
 
         plt.cla()
     print('total number of images: %d ' % len(plt_imgs))
-    imageio.mimsave(save_fname, plt_imgs, fps=15)
+    if save_gif:
+        imageio.mimsave(save_fname, plt_imgs, fps=15)
     return plt_imgs_fnames
 
 
