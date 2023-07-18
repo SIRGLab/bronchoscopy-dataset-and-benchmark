@@ -85,10 +85,14 @@ class VisualOdometry(object):
         self.num_matched_kps = None    # current number of matched keypoints  
         self.num_inliers = None        # current number of inliers 
 
-        self.timer_verbose = False # set this to True if you want to print timings 
+        self.timer_verbose = True # set this to True if you want to print timings 
         self.timer_main = TimerFps('VO', is_verbose = self.timer_verbose)
         self.timer_pose_est = TimerFps('PoseEst', is_verbose = self.timer_verbose)
         self.timer_feat = TimerFps('Feature', is_verbose = self.timer_verbose)
+        self.num_process_frames = 0
+        self.kps_list = []
+        self.success_flag = 1
+        self.num_inliers_list = []
         
         # path to save matches
         detector_name = str(feature_tracker.detector_type).split('.')[-1]
@@ -209,18 +213,27 @@ class VisualOdometry(object):
             # convert from list of keypoints to an array of points 
             self.kps_ref = np.array([x.pt for x in self.kps_ref], dtype=np.float32) 
             self.draw_img = self.drawFeatureTracks(self.cur_image)
+            self.kps_list += [self.kps_ref.shape[0]]
 
     def processFrame(self, frame_id):
+        try:
         # track features 
-        self.timer_feat.start()
-        if self.feature_tracker.feature_manager.detector_type == FeatureDetectorTypes.LOFTR:
-            self.track_result = self.feature_tracker.track_LoFTR(self.prev_image, self.cur_image, self.mask)
-        else:
-            self.track_result = self.feature_tracker.track(self.prev_image, self.cur_image, self.kps_ref, self.des_ref)
-        self.timer_feat.refresh()
-        # estimate pose 
-        self.timer_pose_est.start()
-        R, t = self.estimatePose(self.track_result.kps_ref_matched, self.track_result.kps_cur_matched)     
+            self.timer_feat.start()
+            if self.feature_tracker.feature_manager.detector_type == FeatureDetectorTypes.LOFTR:
+                self.track_result = self.feature_tracker.track_LoFTR(self.prev_image, self.cur_image, self.mask)
+            else:
+                self.track_result = self.feature_tracker.track(self.prev_image, self.cur_image, self.kps_ref, self.des_ref)
+            self.timer_feat.refresh()
+            # estimate pose 
+            self.timer_pose_est.start()
+        # try:
+            R, t = self.estimatePose(self.track_result.kps_ref_matched, self.track_result.kps_cur_matched)  
+            self.num_process_frames += 1   
+            self.success_flag = 1
+        except:
+            R = np.eye(3)
+            t = np.zeros([3,1])
+            self.success_flag = 0
         self.timer_pose_est.refresh()
         # save matches to file
         try:
@@ -228,31 +241,58 @@ class VisualOdometry(object):
         except:
             pass
         # update keypoints history  
-        self.kps_ref = self.track_result.kps_ref
-        self.kps_cur = self.track_result.kps_cur
-        self.des_cur = self.track_result.des_cur 
-        self.num_matched_kps = self.kpn_ref.shape[0] 
-        self.num_inliers =  np.sum(self.mask_match)
-        if kVerbose:        
-            print('# matched points: ', self.num_matched_kps, ', # inliers: ', self.num_inliers)      
-        # t is estimated up to scale (i.e. the algorithm always returns ||trc||=1, we need a scale in order to recover a translation which is coherent with the previous estimated ones)
-        absolute_scale = self.getAbsoluteScale(frame_id)
-        if(absolute_scale > kAbsoluteScaleThreshold):
-            # compose absolute motion [Rwa,twa] with estimated relative motion [Rab,s*tab] (s is the scale extracted from the ground truth)
-            # [Rwb,twb] = [Rwa,twa]*[Rab,tab] = [Rwa*Rab|twa + Rwa*tab]
-            print('estimated t with norm |t|: ', np.linalg.norm(t), ' (just for sake of clarity)')
-            self.cur_t = self.cur_t + absolute_scale*self.cur_R.dot(t) 
-            self.cur_R = self.cur_R.dot(R)       
-        # draw image         
-        self.draw_img = self.drawFeatureTracks(self.cur_image) 
-        # check if we have enough features to track otherwise detect new ones and start tracking from them (used for LK tracker) 
-        if (self.feature_tracker.tracker_type == FeatureTrackerTypes.LK) and (self.kps_ref.shape[0] < self.feature_tracker.num_features): 
+        try:
+            self.kps_list += [self.track_result.kps_cur.shape[0]]
+        except:
+            self.kps_list += [0]
+
+        if self.success_flag == 1:
+            self.kps_ref = self.track_result.kps_ref
+            self.kps_cur = self.track_result.kps_cur
+            self.des_cur = self.track_result.des_cur 
+            self.num_matched_kps = self.kpn_ref.shape[0] 
+            self.num_inliers =  np.sum(self.mask_match)
+            if kVerbose:        
+                print('# matched points: ', self.num_matched_kps, ', # inliers: ', self.num_inliers)      
+            # t is estimated up to scale (i.e. the algorithm always returns ||trc||=1, we need a scale in order to recover a translation which is coherent with the previous estimated ones)
+            absolute_scale = self.getAbsoluteScale(frame_id)
+            if(absolute_scale > kAbsoluteScaleThreshold):
+                # compose absolute motion [Rwa,twa] with estimated relative motion [Rab,s*tab] (s is the scale extracted from the ground truth)
+                # [Rwb,twb] = [Rwa,twa]*[Rab,tab] = [Rwa*Rab|twa + Rwa*tab]
+                print('estimated t with norm |t|: ', np.linalg.norm(t), ' (just for sake of clarity)')
+                self.cur_t = self.cur_t + absolute_scale*self.cur_R.dot(t) 
+                self.cur_R = self.cur_R.dot(R)       
+            # draw image         
+            self.draw_img = self.drawFeatureTracks(self.cur_image) 
+            # check if we have enough features to track otherwise detect new ones and start tracking from them (used for LK tracker) 
+            if (self.feature_tracker.tracker_type == FeatureTrackerTypes.LK) and (self.kps_ref.shape[0] < self.feature_tracker.num_features): 
+                self.kps_cur, self.des_cur = self.feature_tracker.detectAndCompute(self.cur_image)           
+                self.kps_cur = np.array([x.pt for x in self.kps_cur], dtype=np.float32) # convert from list of keypoints to an array of points   
+                if kVerbose:     
+                    print('# new detected points: ', self.kps_cur.shape[0])                  
+            self.kps_ref = self.kps_cur
+            self.des_ref = self.des_cur
+
+            self.num_inliers_list += [self.num_inliers]
+        else:
+            print('Failed to track pose, skipping frames')
+            absolute_scale = self.getAbsoluteScale(frame_id)
+            if(absolute_scale > kAbsoluteScaleThreshold):
+                # compose absolute motion [Rwa,twa] with estimated relative motion [Rab,s*tab] (s is the scale extracted from the ground truth)
+                # [Rwb,twb] = [Rwa,twa]*[Rab,tab] = [Rwa*Rab|twa + Rwa*tab]
+                print('estimated t with norm |t|: ', np.linalg.norm(t), ' (just for sake of clarity)')
+                self.cur_t = self.cur_t + absolute_scale*self.cur_R.dot(t) 
+                self.cur_R = self.cur_R.dot(R)    
             self.kps_cur, self.des_cur = self.feature_tracker.detectAndCompute(self.cur_image)           
             self.kps_cur = np.array([x.pt for x in self.kps_cur], dtype=np.float32) # convert from list of keypoints to an array of points   
-            if kVerbose:     
-                print('# new detected points: ', self.kps_cur.shape[0])                  
-        self.kps_ref = self.kps_cur
-        self.des_ref = self.des_cur
+            self.kps_ref = self.kps_cur
+            self.des_ref = self.des_cur
+            try:
+                self.draw_img = self.drawFeatureTracks(self.cur_image) 
+            except:
+                pass
+            self.num_inliers_list += [0]
+
         self.updateHistory()           
         
 
@@ -288,14 +328,21 @@ class VisualOdometry(object):
             else:    
                 for i,pts in enumerate(zip(self.track_result.kps_ref_matched, self.track_result.kps_cur_matched)):
                     drawAll = False # set this to true if you want to draw outliers 
-                    if self.mask_match[i] or drawAll:
-                        p1, p2 = pts 
-                        a,b = p1.astype(int).ravel()
-                        c,d = p2.astype(int).ravel()
-                        cv2.line(draw_img, (a,b),(c,d), (0,255,0), 1)
-                        cv2.circle(draw_img,(a,b),1, (0,0,255),-1)   
+                    if self.mask_match is not None:
+                        if self.mask_match[i] or drawAll:
+                            p1, p2 = pts 
+                            a,b = p1.astype(int).ravel()
+                            c,d = p2.astype(int).ravel()
+                            cv2.line(draw_img, (a,b),(c,d), (0,255,0), 1)
+                            cv2.circle(draw_img,(a,b),2, (0,0,255),-1)   
                     else:
                         num_outliers+=1
+
+                        # draw outliers
+                        if self.success_flag == 0:
+                            p1, p2 = pts 
+                            a,b = p1.astype(int).ravel()
+                            cv2.circle(draw_img,(a,b),5, (255,0,0),-1)  # blue [b, g, r]
             if kVerbose:
                 print('# outliers: ', num_outliers)     
         return draw_img            

@@ -32,6 +32,7 @@ class Timer:
         self._start_time = None 
         self._accumulated = 0 
         self._elapsed = 0         
+        self._total_elapsed = 0
         self.start()
 
     def start(self):
@@ -60,6 +61,7 @@ class Timer:
                 name += ' [paused]'
             message = 'Timer::' + name + ' - elapsed: ' + str(self._elapsed) 
             timer_print(message)
+        self._total_elapsed += self._elapsed
         return self._elapsed                
 
 
@@ -67,9 +69,11 @@ class TimerFps(Timer):
     def __init__(self, name='', average_width = 10, is_verbose = True): 
         super().__init__(name, is_verbose)   
         self.moving_average = MovingAverage(average_width)
+        self.fps_log = [0]
 
     def refresh(self): 
         elapsed = self.elapsed()
+        self.fps_log += [1/elapsed]
         self.moving_average.getAverage(elapsed)
         self.start()
         if self._is_verbose is True:

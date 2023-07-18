@@ -32,6 +32,7 @@ class GroundTruthType(Enum):
     COLON = 5
     LUNG = 6
     ENDOR = 7
+    ALL = 8
 
 
 kScaleSimple = 1 
@@ -52,20 +53,24 @@ def groundtruth_factory(settings):
     print('using groundtruth: ', type)   
     if type == 'kitti':         
         return KittiGroundTruth(path, name, associations, GroundTruthType.KITTI)
-    if type == 'tum':          
+    elif type == 'tum':          
         if 'associations' in settings:
             associations = settings['associations']        
         return TumGroundTruth(path, name, associations, GroundTruthType.TUM)
-    if type == 'colon':
+    elif type == 'colon':
         return SynColonGroundTruth(path, name, associations, GroundTruthType.COLON)
-    if type == 'lung':
+    elif type == 'lung':
         path = path + '/' + tag
         return LungEMT(path, name, associations, GroundTruthType.LUNG)
-    if type == 'endor':
+    elif type == 'endor':
         return EndorSAGEGT(path, name, associations, type=GroundTruthType.ENDOR)
-    if type == 'video' or type == 'folder':   
+    elif type == 'video' or type == 'folder':   
         name = settings['groundtruth_file']
         return SimpleGroundTruth(path, name, associations, GroundTruthType.SIMPLE)     
+    elif type == 'all':
+        fname = Path(settings['base_path']) / settings['tag'] / (settings['fname'] + '.txt')
+        return AllGT(path, name, settings, associations, type=GroundTruthType.ALL)
+        pass
     else:
         print('not using groundtruth')
         print('if you are using main_vo.py, your estimated trajectory will not make sense!')          
@@ -256,6 +261,15 @@ class LungEMT(SynColonGroundTruth):
             self.data = np.loadtxt(gt_file, delimiter=' ')
         except:
             self.data = None
+
+class AllGT(SynColonGroundTruth):
+    def __init__(self, path, name, settings, associations=None, type=GroundTruthType.ALL):
+        super().__init__(path, name, associations, type, load_txt=False)
+        self.path = path 
+        gt_file = Path(path) / settings['tag'] / settings['fname']
+        gt_file = str(gt_file) + '.txt'
+        self.data = np.loadtxt(gt_file, delimiter=' ')
+
 
 
 class EndorSAGEGT(SynColonGroundTruth):

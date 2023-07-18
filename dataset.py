@@ -24,7 +24,7 @@ import cv2
 import os
 import glob
 import time 
-
+from pathlib import Path
 from multiprocessing import Process, Queue, Value
 # from ground_truth import EndorSAGEGT 
 from utils_sys import Printer 
@@ -40,6 +40,7 @@ class DatasetType(Enum):
     COLON = 7
     LUNG = 8
     ENDOR = 9
+    ALL = 10
 
 
 def dataset_factory(settings):
@@ -83,6 +84,8 @@ def dataset_factory(settings):
         dataset = FolderDataset(path, name, fps, associations, DatasetType.FOLDER)      
     if type == 'live':
         dataset = LiveDataset(path, name, associations, DatasetType.LIVE)   
+    if type == 'all':
+        dataset = FinalDataset(path, name, settings, associations=associations, type=DatasetType.ALL)
                 
     return dataset 
 
@@ -145,6 +148,7 @@ class MedicalVideoDataset(Dataset):
         self.fps = None
         self.Ts = None
         self.mask_fname = None
+        self.finish = False
         self.mask = None
 
         if load_vid:
@@ -177,6 +181,7 @@ class MedicalVideoDataset(Dataset):
         self._next_timestamp = self._timestamp + self.Ts 
         if ret is False:
             print('ERROR while reading from file: ', self.filename)
+            self.is_ok = False
         return image    
 
 class LungDataset(MedicalVideoDataset):
@@ -187,6 +192,15 @@ class LungDataset(MedicalVideoDataset):
         else:
             self.filename = path + '/' + tag + '/' + name + '.mp4'
         self.load_vid()
+
+class FinalDataset(MedicalVideoDataset):
+    def __init__(self, path, name, settings, associations=None, type=DatasetType.VIDEO, tag=None):
+        super().__init__(path, name, associations, type, load_vid=False)
+        self.settings = settings
+        self.filename = Path(path) / settings['tag'] / (settings['fname'] + '.mp4')
+        self.filename = str(self.filename)
+        self.load_vid()
+
 
 class EndorDataset(MedicalVideoDataset):
     def __init__(self, path, name, associations=None, type=DatasetType.VIDEO):

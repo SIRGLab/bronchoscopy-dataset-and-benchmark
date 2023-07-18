@@ -20,11 +20,11 @@ class LoFTRMatcher2D():
         # pass
         self.lock = RLock()
         # pretrain out-door
-        # self.weights_path=config.cfg.root_folder + '/thirdparty/LoFTR-MedicalData/weights/outdoor_ds.ckpt'
+        self.weights_path=config.cfg.root_folder + '/thirdparty/LoFTR-MedicalData/weights/outdoor_ds.ckpt'
         # tuned for lung
         # self.weights_path=config.cfg.root_folder + '/thirdparty/LoFTR-MedicalData/weights/tuned_lung.pt'
         # tuned for colon
-        self.weights_path=config.cfg.root_folder + '/thirdparty/LoFTR-MedicalData/weights/tuned_colon.pth'
+        # self.weights_path=config.cfg.root_folder + '/thirdparty/LoFTR-MedicalData/weights/tuned_colon.pth'
         if cfg is None:
             net_cfg = default_cfg
         else:

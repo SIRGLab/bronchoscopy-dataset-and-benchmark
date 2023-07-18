@@ -74,25 +74,34 @@ if __name__ == "__main__":
     # select your tracker configuration (see the file feature_tracker_configs.py) 
     # LK_SHI_TOMASI, LK_FAST
     # SHI_TOMASI_ORB, FAST_ORB, ORB, BRISK, AKAZE, FAST_FREAK, SIFT, ROOT_SIFT, SURF, SUPERPOINT, FAST_TFEAT
+    # about 43.29 FPS
     # tracker_config = FeatureTrackerConfigs.LK_SHI_TOMASI
     # tracker_config['num_features'] = num_features
     
     # using superpoint as detector and descriptor
+    # about 23.3 FPS
     # tracker_config = FeatureTrackerConfigs.SUPERPOINT
     # tracker_config['num_features'] = num_features
 
 
     # # using ORB2 as detector and descriptor
+    # 120.36 fps
     # tracker_config = FeatureTrackerConfigs.ORB2
     # tracker_config['num_features'] = num_features
 
+    # # using SIFT as detector and descriptor
+    # 22.84 fps
+    # tracker_config = FeatureTrackerConfigs.SIFT
+    # tracker_config['num_features'] = num_features
+
     # using LoFTR as matcher
+    # 5.12 FPS
     tracker_config = FeatureTrackerConfigs.LOFTR
     tracker_config['num_features'] = num_features
 
     feature_tracker = feature_tracker_factory(**tracker_config)
 
-    use_gt = False
+    use_gt = True
 
     # create visual odometry object 
     if use_gt:
@@ -113,7 +122,7 @@ if __name__ == "__main__":
     if is_record_video:
         out = None
         base_path = P(config.dataset_settings['base_path'])
-        name = config.dataset_settings['name']
+        name = config.dataset_settings['tag'] + '_' + config.dataset_settings.get('fname', None)
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         
         vid_name = data_type + '_' + detector_name + '_' + name + '.mp4'
@@ -123,8 +132,9 @@ if __name__ == "__main__":
         out = cv2.VideoWriter(save_vid_name, fourcc, fps, img_size)
 
 
-    if (data_type == 'colon') or (data_type == 'lung') or (data_type == 'endor'):
-        if data_type == 'lung':
+    if (data_type == 'colon') or (data_type == 'lung') or (data_type == 'endor') or (data_type == 'all'):
+        init_emt = config.dataset_settings.get('init_emt', False)
+        if init_emt:
             vo.init_emt_pose()
         else:
             vo.init_pose()
@@ -152,9 +162,8 @@ if __name__ == "__main__":
         img = dataset.getImage(img_id)
 
         if img is not None:
-
+            # try:
             vo.track(img, img_id)  # main VO function 
-
             if(img_id > 2):	       # start drawing from the third image (when everything is initialized and flows in a normal way)
 
                 x, y, z = vo.traj3d_est[-1]
@@ -206,7 +215,14 @@ if __name__ == "__main__":
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
         img_id += 1
-
+    print('Successfully processed frames: %d'%vo.num_process_frames)
+    print('Successfully processed rate: %.2f'%(100*vo.num_process_frames/dataset.num_frames))
+    print('Average detected points: %.2f'%np.array(vo.kps_list).mean())
+    avg_inliers = np.array(vo.num_inliers_list).sum()/vo.num_process_frames
+    fps_log = vo.timer_feat.fps_log
+    avg_fps = sum(fps_log) / (len(fps_log) - 1)
+    print('Average FPS: %.2f'%avg_fps)
+    print('Average inliners: %.2f' % avg_inliers)
     #print('press a key in order to exit...')
     #cv2.waitKey(0)
     # poses_fname = ''

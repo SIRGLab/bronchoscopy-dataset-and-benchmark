@@ -44,6 +44,11 @@ class PinholeCamera(Camera):
         self.K = np.array([[fx, 0,cx],
                            [ 0,fy,cy],
                            [ 0, 0, 1]])
+        # skew for endoSLAM
+        # self.K = np.array([[fx, 0,cx],
+        #                    [ 5.6242,fy,cy], 
+        #                    [ 0, 0, 1]])
+                           
         self.Kinv = np.array([[1/fx,    0,-cx/fx],
                               [   0, 1/fy,-cy/fy],
                               [   0,    0,    1]])             
