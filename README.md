@@ -6,6 +6,12 @@
 Please check this [file](./README_pyslam.md) for more detail instructions.
 
 ---
+## Bronchoscopy dataset
+
+Here's the link to download our dataset: [link](about:blank)
+
+
+---
 ## Usage for bronchoscopy dataset
 
 1. Link the data folder to ```./dataset``` in this architecture
