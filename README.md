@@ -1,4 +1,4 @@
-# Feature-based Visual Odometry for Bronchoscopy: A Dataset and Benchmark [ICRA'23]
+# Feature-based Visual Odometry for Bronchoscopy: A Dataset and Benchmark [IROS'23]
 
 ---
 ## Installation of PySLAM
