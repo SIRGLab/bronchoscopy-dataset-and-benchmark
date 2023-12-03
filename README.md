@@ -8,7 +8,7 @@ Please check this [file](./README_pyslam.md) for more detail instructions.
 ---
 ## Bronchoscopy dataset
 
-Here's the link to download our dataset: [link](about:blank)
+Here's the link to download our dataset: [link](https://drive.google.com/file/d/1GUTV17sN5S73YM4d7tjjtz0Z1xnRhJvY/view?usp=sharing)
 
 
 ---
